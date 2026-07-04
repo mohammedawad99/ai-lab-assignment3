@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 2-B — CVRP baseline and Rush Hour evaluator done. No metaheuristic solvers or GP/GEP yet.
+Stage 3-A — Ackley warm-up framework done. No metaheuristic solvers or GP/GEP yet.
 
 ## Requirements
 
@@ -110,6 +110,23 @@ Optional CSV summary:
 
 ```
 python scripts/evaluate_rushhour_heuristics.py --puzzles examples/rushhour_eval_puzzles.txt --output results/rushhour_heuristics.csv
+```
+
+## Stage 3-A: Ackley warm-up
+
+The Ackley function and a small random-search sanity run were added. The
+assignment default is d=10 with bounds [-32.768, 32.768]; the optimum is
+f(0, ..., 0) = 0. Random search is only a sanity check for the objective,
+bounds and seeding — it is not one of the six required algorithms.
+
+```
+python scripts/run_ackley_random_search.py --iterations 1000 --seed 42
+```
+
+Optional CSV output:
+
+```
+python scripts/run_ackley_random_search.py --iterations 1000 --seed 42 --output results/ackley_random_search.csv
 ```
 
 ## Usage
