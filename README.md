@@ -82,7 +82,11 @@ python scripts/solve_rushhour.py --puzzle examples/rushhour_tiny.txt --heuristic
 Clarke-Wright savings construction and simple local search were added. The
 multi-stage baseline heuristic is:
 
-construction (Clarke-Wright) -> 2-opt inside routes -> relocate between routes -> validation
+construction (Clarke-Wright) -> 2-opt inside routes -> relocate between routes -> vehicle-count repair -> validation
+
+The repair stage empties surplus routes and reinserts their customers,
+because Clarke-Wright can need more routes than the instance allows
+(this happened on the official P-n16-k8).
 
 Run it on the tiny example:
 
