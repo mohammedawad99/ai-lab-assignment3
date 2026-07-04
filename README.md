@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 5-B — all six CVRP algorithm foundations done (TS, ACO, SA, GA-Island, ALNS, B&B/LDS). No GP/GEP yet.
+Stage 6-A — all six CVRP algorithm foundations plus GP for Rush Hour done. No GEP yet.
 
 ## Requirements
 
@@ -232,6 +232,25 @@ Ackley:
 
 ```
 python scripts/run_ackley_bnb_lds.py --dimension 10 --bins-per-dimension 7 --max-discrepancy 3 --seed 42
+```
+
+## Stage 6-A: GP for Rush Hour heuristics
+
+A basic Genetic Programming system was added to evolve Rush Hour heuristic
+expressions. Terminals come from the simple board features (distance to
+exit, blocking cars, free exit cells) plus small constants; operators are
+protected (+, -, *, /, min, max, abs, neg, log). Every candidate is turned
+into a heuristic function and scored by running A* through the safe
+evaluator, with node and time caps, so a bad heuristic cannot hang the run.
+
+```
+python scripts/run_gp_rushhour.py --puzzles examples/rushhour_gp_train.txt --generations 10 --population-size 20 --seed 42
+```
+
+Optional history and best-expression output:
+
+```
+python scripts/run_gp_rushhour.py --puzzles examples/rushhour_gp_train.txt --output results/gp_rushhour_history.csv --best-output results/gp_best_expression.txt
 ```
 
 ## Usage
