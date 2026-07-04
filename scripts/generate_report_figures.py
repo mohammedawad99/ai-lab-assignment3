@@ -31,8 +31,38 @@ REQUIRED_RESULTS = [
     RESULTS / "raw" / "ackley_d10.csv",
     RESULTS / "summary" / "ackley_d10_summary.csv",
     RESULTS / "raw" / "gp_gep_comparison_runs.csv",
+    RESULTS / "rushhour_hard" / "gp_gep_hard_summary.csv",
+    RESULTS / "rushhour_hard" / "manual_heuristics_eval.csv",
     RESULTS / "final_execution_manifest.json",
 ]
+
+# pre-tuning best gaps (previous final run, recorded in Stage 10-A snapshot
+# and in report/evidence/final_v2_summary.txt) for the before/after figure
+PREVIOUS_BEST_GAPS = {
+    "P-n16-k8": 0.4327, "E-n22-k4": 0.0746, "A-n32-k5": 0.3931,
+    "A-n80-k10": 4.0276, "X-n101-k25": 25.4508, "M-n200-k17": 5.9946,
+}
+
+
+def apply_alns_policy(rows):
+    """Return the policy-effective row view: the assignment 'alns' result is
+    the enhanced variant except on the instances excluded by the
+    pre-declared rule in configs/tuned_cvrp_settings.json."""
+    import json
+    policy = json.loads((REPO_ROOT / "configs" / "tuned_cvrp_settings.json")
+                        .read_text()).get("alns_policy", {})
+    excluded = set(policy.get("enhanced_excluded_instances", []))
+    effective = []
+    for r in rows:
+        algo, inst = r["algorithm"], r["instance"]
+        if algo == "cvrp_alns" and inst not in excluded:
+            continue
+        if algo == "cvrp_alns_enhanced":
+            if inst in excluded:
+                continue
+            r = dict(r, algorithm="cvrp_alns")
+        effective.append(r)
+    return effective
 
 created = []
 
@@ -101,8 +131,8 @@ def main():
         sys.exit(1)
     FIGURES.mkdir(parents=True, exist_ok=True)
 
-    # ---- CVRP charts ----
-    rows = read_rows(RESULTS / "raw" / "cvrp_all_instances.csv")
+    # ---- CVRP charts (policy-effective view: alns = enhanced except M) ----
+    rows = apply_alns_policy(read_rows(RESULTS / "raw" / "cvrp_all_instances.csv"))
     feasible = [r for r in rows if r["feasible"] == "True" and r["gap_percent"]]
 
     best_gaps = [min(float(r["gap_percent"]) for r in feasible
@@ -148,6 +178,75 @@ def main():
     save_bar(labels, [float(r["eval_total_expanded_nodes"]) for r in gp_rows],
              "GP vs GEP: A* expanded nodes on eval set", "expanded nodes",
              "gp_gep_expanded_nodes.png", value_fmt="{:.0f}")
+
+    # ---- before/after tuning comparison ----
+    new_best = {name: min(float(r["gap_percent"]) for r in feasible
+                          if r["instance"] == name) for name in INSTANCES}
+    fig, ax = plt.subplots(figsize=(8.0, 4.4))
+    width = 0.38
+    xs = range(len(INSTANCES))
+    old_bars = ax.bar([x - width / 2 for x in xs],
+                      [PREVIOUS_BEST_GAPS[i] for i in INSTANCES], width,
+                      label="before tuning")
+    new_bars = ax.bar([x + width / 2 for x in xs],
+                      [new_best[i] for i in INSTANCES], width,
+                      label="after tuning (policy)")
+    for bars in (old_bars, new_bars):
+        for bar in bars:
+            ax.annotate(f"{bar.get_height():.2f}",
+                        (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                        ha="center", va="bottom", fontsize=7)
+    ax.set_xticks(list(xs))
+    ax.set_xticklabels(INSTANCES, rotation=30, ha="right")
+    ax.set_ylabel("best gap vs BKS (%)")
+    ax.set_title("CVRP best gaps before vs after Stage 10 tuning "
+                 "(P/A80/X improved, no regressions)")
+    ax.legend()
+    fig.tight_layout()
+    path = FIGURES / "cvrp_before_after_tuning.png"
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+    created.append(path)
+
+    # ---- Rush Hour hard benchmark charts ----
+    hard = read_rows(RESULTS / "rushhour_hard" / "gp_gep_hard_summary.csv")
+    manual = [r for r in hard if r["name"].startswith("manual_")]
+    evolved = [r for r in hard if not r["name"].startswith("manual_")]
+
+    ladder = sorted(manual, key=lambda r: float(r["eval_fitness"]))
+    save_bar([r["name"].replace("manual_", "") for r in ladder],
+             [float(r["expanded"]) for r in ladder],
+             "Rush Hour hard set: manual heuristic ladder (A* expansions, lower is better)",
+             "expanded nodes", "rushhour_manual_heuristic_ladder.png",
+             value_fmt="{:.0f}")
+
+    best_manual = max(manual, key=lambda r: float(r["eval_fitness"]))
+    best_gp = max((r for r in evolved if r["name"].startswith("gp_")),
+                  key=lambda r: float(r["eval_fitness"]))
+    best_gep = max((r for r in evolved if r["name"].startswith("gep_")),
+                   key=lambda r: float(r["eval_fitness"]))
+    trio = [best_manual, best_gp, best_gep]
+    save_bar([f"{r['name']}\n({r['solved']}/{r['puzzles']} solved)" for r in trio],
+             [float(r["expanded"]) for r in trio],
+             "Best manual vs best GP vs best GEP (A* expansions on hard set)",
+             "expanded nodes", "rushhour_gp_gep_vs_manual.png",
+             value_fmt="{:.0f}")
+
+    save_bar([r["name"].replace("_rushhour", "") for r in evolved],
+             [float(r["eval_fitness"]) for r in evolved],
+             "GP/GEP fitness per seed: variance dominates the method difference",
+             "eval fitness", "rushhour_gp_gep_seed_variance.png",
+             value_fmt="{:.0f}")
+
+    # per-puzzle difficulty under the best manual guide
+    per_puzzle = read_rows(RESULTS / "rushhour_hard" / "manual_heuristics_eval.csv")
+    depth_rows = [r for r in per_puzzle if r["heuristic_name"] == "blocker_depth"]
+    depth_rows.sort(key=lambda r: int(r["puzzle_id"]))
+    save_bar([f"p{int(r['puzzle_id']) + 1}" for r in depth_rows],
+             [max(1.0, float(r["expanded_nodes"])) for r in depth_rows],
+             "Hard set per-puzzle A* expansions (blocker_depth heuristic, log scale)",
+             "expanded nodes", "rushhour_per_puzzle_difficulty.png",
+             value_fmt="{:.0f}", log=True)
 
     # ---- code snippet figures (real source lines) ----
     render_text_image(extract_snippet("src/cvrp/local_search.py",

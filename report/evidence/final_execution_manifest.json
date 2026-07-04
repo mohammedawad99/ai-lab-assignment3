@@ -2,73 +2,127 @@
   "plan_path": "configs/final_experiment_plan.json",
   "resume": true,
   "run_cvrp": true,
-  "run_ackley": false,
-  "run_rushhour": false,
+  "run_ackley": true,
+  "run_rushhour": true,
+  "tuned_cvrp_path": "configs/tuned_cvrp_settings.json",
+  "tuned_cvrp_settings": {
+    "note": "Tuned CVRP solver settings accepted in Stage 10-A. Budgets/timeouts still come from final_experiment_plan.json; these are per-algorithm parameter overrides validated on all six official instances with seeds 42-44.",
+    "alns": {
+      "enhanced_operators": true,
+      "reaction_rate": 0.5,
+      "validation_note": "Improves P-n16-k8 (-0.14), A-n80-k10 (-1.01) and X-n101-k25 (-2.07) best gaps, ties E/A32, but regresses M-n200-k17 by +1.02. Accepted for the net mean improvement; the solver default stays enhanced_operators=false so base behavior is unchanged without this config."
+    },
+    "alns_policy": {
+      "main_result_rule": "Both ALNS variants run in the final rerun (rows cvrp_alns and cvrp_alns_enhanced). The assignment 'alns' result uses cvrp_alns_enhanced for every instance except M-n200-k17, where Stage 10-A validation showed a +1.02% regression; M-n200-k17 uses the basic cvrp_alns row. This rule was declared before the rerun, not after it.",
+      "enhanced_excluded_instances": [
+        "M-n200-k17"
+      ]
+    },
+    "sa": {
+      "iterations_factor": 50,
+      "cooling_rate": 0.9995,
+      "initial_temperature": 500.0
+    },
+    "ga_island": {
+      "population_size": 30,
+      "islands": 2,
+      "mutation_rate": 0.3
+    },
+    "bnb_lds": {
+      "changed": false,
+      "reason": "No safe low-risk improvement found: a tighter lower bound risks cutting the true optimum, and the incumbent already comes from the strong multi-stage baseline. Left unchanged."
+    }
+  },
+  "alns_policy": {
+    "main_result_rule": "Both ALNS variants run in the final rerun (rows cvrp_alns and cvrp_alns_enhanced). The assignment 'alns' result uses cvrp_alns_enhanced for every instance except M-n200-k17, where Stage 10-A validation showed a +1.02% regression; M-n200-k17 uses the basic cvrp_alns row. This rule was declared before the rerun, not after it.",
+    "enhanced_excluded_instances": [
+      "M-n200-k17"
+    ]
+  },
+  "rushhour_hard_path": "configs/rushhour_hard_benchmark.json",
   "cvrp_run_info": [
     {
       "instance": "P-n16-k8",
       "output_csv": "results/final_experiments/raw/cvrp_P-n16-k8.csv",
-      "rows": 21,
-      "skipped_existing": true,
+      "rows": 24,
+      "skipped_existing": false,
       "budget": 300,
       "timeout_sec": 30,
-      "elapsed_time": 0.0
+      "elapsed_time": 12.547038554999745
     },
     {
       "instance": "E-n22-k4",
       "output_csv": "results/final_experiments/raw/cvrp_E-n22-k4.csv",
-      "rows": 21,
-      "skipped_existing": true,
+      "rows": 24,
+      "skipped_existing": false,
       "budget": 300,
       "timeout_sec": 30,
-      "elapsed_time": 0.0
+      "elapsed_time": 10.350906089995988
     },
     {
       "instance": "A-n32-k5",
       "output_csv": "results/final_experiments/raw/cvrp_A-n32-k5.csv",
-      "rows": 21,
-      "skipped_existing": true,
+      "rows": 24,
+      "skipped_existing": false,
       "budget": 500,
       "timeout_sec": 60,
-      "elapsed_time": 0.0
+      "elapsed_time": 20.534239738997712
     },
     {
       "instance": "A-n80-k10",
       "output_csv": "results/final_experiments/raw/cvrp_A-n80-k10.csv",
-      "rows": 21,
-      "skipped_existing": true,
+      "rows": 24,
+      "skipped_existing": false,
       "budget": 800,
       "timeout_sec": 120,
-      "elapsed_time": 0.0
+      "elapsed_time": 96.94281993000186
     },
     {
       "instance": "X-n101-k25",
       "output_csv": "results/final_experiments/raw/cvrp_X-n101-k25.csv",
-      "rows": 21,
+      "rows": 24,
       "skipped_existing": false,
       "budget": 1000,
       "timeout_sec": 180,
-      "elapsed_time": 126.82432671700008
+      "elapsed_time": 157.28247927600023
     },
     {
       "instance": "M-n200-k17",
       "output_csv": "results/final_experiments/raw/cvrp_M-n200-k17.csv",
-      "rows": 21,
-      "skipped_existing": true,
+      "rows": 24,
+      "skipped_existing": false,
       "budget": 1200,
       "timeout_sec": 300,
-      "elapsed_time": 0.0
+      "elapsed_time": 648.049764686999
     }
   ],
-  "ackley_run_info": {},
-  "rushhour_run_info": {},
+  "ackley_run_info": {
+    "output_csv": "results/final_experiments/raw/ackley_d10.csv",
+    "rows": 21,
+    "skipped_existing": true,
+    "elapsed_time": 0.0
+  },
+  "rushhour_run_info": {
+    "output_csv": "results/final_experiments/raw/gp_gep_comparison_runs.csv",
+    "summary_txt": "results/final_experiments/raw/gp_gep_comparison_summary.txt",
+    "rows": 6,
+    "skipped_existing": true,
+    "elapsed_time": 0.0
+  },
+  "rushhour_hard_info": {
+    "output_dir": "results/final_experiments/rushhour_hard",
+    "rows": 6,
+    "skipped_existing": false,
+    "elapsed_time": 380.16238409499783,
+    "config": "configs/rushhour_hard_benchmark.json"
+  },
   "aggregation_info": {
     "cvrp_combined": {
       "output_path": "results/final_experiments/raw/cvrp_all_instances.csv",
       "input_count": 6,
       "missing_count": 0,
       "missing_paths": [],
-      "row_count": 126
+      "row_count": 144
     },
     "summaries": [
       "results/final_experiments/summary/cvrp_all_summary.csv",

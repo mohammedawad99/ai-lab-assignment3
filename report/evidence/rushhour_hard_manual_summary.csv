@@ -1,0 +1,5 @@
+heuristic_name,puzzle_count,solved_count,solved_rate,total_cost,total_expanded_nodes,total_generated_nodes,total_elapsed_time,total_cpu_time,timeout_count,max_nodes_count,no_solution_count,fitness
+blocker_depth,14,13,0.9286,81,10338,131038,5.572841,5.570829,1,0,0,116852.0
+blocking,14,13,0.9286,76,20631,267138,8.401446,8.401369,1,0,0,106609.0
+blocking_distance,14,13,0.9286,81,13580,170958,5.890283,5.890133,1,0,0,113610.0
+zero,14,9,0.6429,43,31809,421138,11.849673,11.848226,5,0,0,47761.0

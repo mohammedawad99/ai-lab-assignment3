@@ -23,9 +23,13 @@ REQUIRED_FILES = [
     "data/cvrp_bks.csv",
     # small evidence snapshots cited by the report
     "report/evidence/cvrp_all_summary.csv",
+    "report/evidence/cvrp_all_policy_effective_summary.csv",
     "report/evidence/ackley_d10_summary.csv",
     "report/evidence/gp_gep_comparison_runs.csv",
+    "report/evidence/rushhour_hard_manual_summary.csv",
+    "report/evidence/rushhour_hard_gp_gep_summary.csv",
     "report/evidence/final_execution_manifest.json",
+    "report/evidence/final_v2_summary.txt",
 ]
 
 RESULT_FILES = [
@@ -87,6 +91,11 @@ def main():
         check("report has no overclaim phrases",
               all(p not in lowered for p in OVERCLAIM_PHRASES))
         check("report has an AI tools section", "AI tools" in text)
+        check("report covers the tuned rerun", "tuned" in text)
+        check("report covers the hard Rush Hour benchmark",
+              "hard Rush Hour" in text and "blocker_depth" in text)
+        check("report shows before/after tuning figure",
+              "cvrp_before_after_tuning.png" in text)
 
     # result files and row counts
     if args.check_results:
@@ -95,10 +104,9 @@ def main():
         cvrp_path = REPO_ROOT / RESULT_FILES[0]
         if cvrp_path.exists():
             rows = count_data_rows(cvrp_path)
-            # 126 = 7 algorithms x 6 instances x 3 seeds;
-            # 144 = the same plus the alns_enhanced variant from Stage 10-C
-            check("cvrp_all_instances has 126 or 144 rows",
-                  len(rows) in (126, 144), f"{len(rows)} rows")
+            # 144 = 8 algorithm rows (incl. both ALNS variants) x 6 x 3
+            check("cvrp_all_instances has 144 rows",
+                  len(rows) == 144, f"{len(rows)} rows")
             check("all cvrp rows feasible",
                   all(str(r.get("feasible")).lower() in ("true", "yes", "1")
                       for r in rows))

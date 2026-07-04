@@ -13,10 +13,15 @@ REQUIRED_FIGURES = [
     "cvrp_best_gap_by_instance.png",
     "cvrp_mean_gap_by_algorithm.png",
     "cvrp_runtime_by_instance.png",
+    "cvrp_before_after_tuning.png",
     "ackley_best_value_by_algorithm.png",
     "ackley_runtime_by_algorithm.png",
     "gp_gep_eval_fitness.png",
     "gp_gep_expanded_nodes.png",
+    "rushhour_manual_heuristic_ladder.png",
+    "rushhour_gp_gep_vs_manual.png",
+    "rushhour_gp_gep_seed_variance.png",
+    "rushhour_per_puzzle_difficulty.png",
     "code_baseline_repair.png",
     "code_gep_decoder.png",
     "code_final_runner.png",
@@ -55,10 +60,10 @@ def test_report_content_still_honest():
 @pytest.mark.skipif(not REPORT_PDF.exists(), reason="PDF not exported")
 def test_pdf_is_visual():
     data = REPORT_PDF.read_bytes()
-    assert len(data) > 100_000  # text-only export was ~34 KB
+    assert len(data) > 1_000_000  # tuned visual export is ~1.2 MB
     pages = data.count(b"/Type /Page") - data.count(b"/Type /Pages")
-    assert pages >= 10
-    assert data.count(b"/Subtype /Image") >= 8  # embedded figures
+    assert pages >= 20
+    assert data.count(b"/Subtype /Image") >= 15  # embedded figures
 
 
 def test_no_forbidden_files():

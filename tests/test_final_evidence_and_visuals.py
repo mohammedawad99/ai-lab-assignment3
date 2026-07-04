@@ -12,9 +12,16 @@ EVIDENCE = REPO_ROOT / "report" / "evidence"
 
 EVIDENCE_FILES = [
     "cvrp_all_summary.csv",
+    "cvrp_all_policy_effective_summary.csv",
+    "cvrp_algorithm_mean_gaps.csv",
     "ackley_d10_summary.csv",
     "gp_gep_comparison_runs.csv",
+    "rushhour_hard_manual_summary.csv",
+    "rushhour_hard_gp_gep_summary.csv",
+    "rushhour_hard_config.json",
+    "rushhour_hard_manifest.json",
     "final_execution_manifest.json",
+    "final_v2_summary.txt",
 ]
 
 VISUAL_FIGURES = [
@@ -33,6 +40,10 @@ REQUIRED_REFERENCES = [
     "cvrp_route_X-n101-k25.png",
     "convergence_P-n16-k8.png",
     "convergence_A-n80-k10.png",
+    "cvrp_before_after_tuning.png",
+    "rushhour_manual_heuristic_ladder.png",
+    "rushhour_gp_gep_vs_manual.png",
+    "rushhour_gp_gep_seed_variance.png",
 ]
 
 

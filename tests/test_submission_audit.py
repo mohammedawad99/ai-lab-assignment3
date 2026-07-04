@@ -36,7 +36,7 @@ def test_audit_checks_report_placeholders():
 @pytest.mark.skipif(not RESULTS_PRESENT, reason="final results not present")
 def test_audit_checks_row_counts():
     proc = run_audit("--check-results")
-    assert "cvrp_all_instances has 126 or 144 rows" in proc.stdout
+    assert "cvrp_all_instances has 144 rows" in proc.stdout
     assert "ackley_d10 has 21 rows" in proc.stdout
     assert "gp_gep_comparison has 6 rows" in proc.stdout
 

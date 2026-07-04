@@ -40,10 +40,24 @@ CASES = [
 ]
 
 
+def load_tuned():
+    import json
+    path = REPO_ROOT / "configs" / "tuned_cvrp_settings.json"
+    return json.loads(path.read_text()) if path.exists() else {}
+
+
+TUNED = load_tuned()
+
+
 def run_case(instance, algorithm, budget, timeout_sec):
+    # matches the Stage 10-C final settings; the plotted instances (P, A80,
+    # X) all use the enhanced ALNS variant under the pre-declared policy
     if algorithm == "alns":
+        alns_cfg = TUNED.get("alns", {})
         return run_cvrp_alns(instance, iterations=budget, seed=SEED,
-                             timeout_sec=timeout_sec)
+                             timeout_sec=timeout_sec,
+                             enhanced_operators=True,
+                             reaction_rate=alns_cfg.get("reaction_rate", 0.2))
     if algorithm == "aco":
         return run_cvrp_aco(instance, iterations=budget, ants=10, seed=SEED,
                             timeout_sec=timeout_sec)
@@ -51,9 +65,13 @@ def run_case(instance, algorithm, budget, timeout_sec):
         return run_cvrp_tabu_search(instance, iterations=budget, seed=SEED,
                                     timeout_sec=timeout_sec)
     if algorithm == "ga_island":
-        return run_cvrp_ga_island(instance, generations=budget,
-                                  population_size=12, islands=2, seed=SEED,
-                                  timeout_sec=timeout_sec)
+        ga_cfg = TUNED.get("ga_island", {})
+        return run_cvrp_ga_island(
+            instance, generations=budget,
+            population_size=int(ga_cfg.get("population_size", 12)),
+            islands=int(ga_cfg.get("islands", 2)),
+            mutation_rate=ga_cfg.get("mutation_rate", 0.15),
+            seed=SEED, timeout_sec=timeout_sec)
     raise SystemExit(f"unknown algorithm '{algorithm}'")
 
 
@@ -102,9 +120,9 @@ def main():
     # ALNS operator weights on A-n80-k10 (recorded in its convergence rows)
     if alns_weights_result is not None:
         history = alns_weights_result.convergence
-        weight_keys = ["random_removal_weight", "worst_removal_weight",
-                       "greedy_repair_weight", "regret2_repair_weight"]
-        if all(key in history[0] for key in weight_keys):
+        # plot every recorded operator weight (enhanced mode has more of them)
+        weight_keys = sorted(k for k in history[0] if k.endswith("_weight"))
+        if weight_keys:
             fig, ax = plt.subplots(figsize=(7.2, 4.0))
             xs = [row["iteration"] for row in history]
             for key in weight_keys:

@@ -1,0 +1,11 @@
+name,eval_fitness,solved,puzzles,expanded,best_expression
+gp_rushhour_seed42,119583,13,14,7617,"(min(blocking, max(distance, distance)) * (neg(free) + abs(5)))"
+gp_rushhour_seed43,120002,13,14,7198,(abs((blocking * (blocking * blocking))) / abs(0.5))
+gp_rushhour_seed44,91200,11,14,12150,(((((distance * distance) / free) / 0.5) / 0.5) * (blocking / 0.5))
+gep_rushhour_seed42,102807,12,14,12533,"(max(max(1, 0), 5) - ((free - distance) * 2))"
+gep_rushhour_seed43,119985,13,14,7215,"max((5 * blocking), ((1 + distance) * blocking))"
+gep_rushhour_seed44,101946,12,14,13384,(blocking + (distance / (abs(blocking) - free)))
+manual_blocker_depth,116852,13,14,10338,
+manual_blocking,106609,13,14,20631,
+manual_blocking_distance,113610,13,14,13580,
+manual_zero,47761,9,14,31809,

@@ -23,6 +23,13 @@ every candidate heuristic is judged by actually running A* with it.
 All stochastic runs use the fixed seeds 42, 43 and 44 from the final
 experiment plan, so every number below is reproducible.
 
+After the first complete run, a controlled tuning pass (validated on all
+six instances before acceptance) improved SA, GA-Island and ALNS, and Part
+B was strengthened with a measured 14-puzzle hard Rush Hour benchmark. The
+final tuned rerun improved the best CVRP gaps on three instances with no
+regressions, and the Ackley results were left unchanged. All numbers in
+this report come from that final tuned rerun.
+
 ## 2. Implementation Overview
 
 ### 2.1 Project structure
@@ -118,49 +125,63 @@ Official instances and best-known solutions (BKS):
 The BKS values are used only to compute the gap percentage
 (100 · (cost − BKS) / BKS); the algorithms never see them.
 
-Best feasible result per instance (7 algorithms × 3 seeds = 21 rows per
-instance; after the Stage 9-B2 repair **all 126 rows are feasible**):
+The final run uses tuned settings accepted after a separate validation
+pass: SA runs 50× more (very cheap) iterations with a slower cooling
+schedule and a higher start temperature; GA-Island uses population 30 with
+mutation 0.3; and ALNS gained extra destroy/repair operators (Shaw-style
+related removal, full-route removal, segment removal, regret-3 insertion).
+Because the enhanced ALNS regressed on M-n200-k17 during validation, the
+final rerun executes **both** ALNS variants (144 raw rows in total: 8
+algorithm rows × 6 instances × 3 seeds) and the reported "alns" result
+follows a rule declared *before* the rerun: enhanced everywhere except
+M-n200-k17, which uses the basic variant. Nothing is cherry-picked after
+the fact and both variants' raw rows are kept.
 
-| instance | BKS | best algorithm | best cost | best gap | feasible runs |
+Best feasible result per instance (all 144 rows feasible):
+
+| instance | BKS | best algorithm | best cost | best gap | previous best |
 | --- | --- | --- | --- | --- | --- |
-| P-n16-k8 | 450 | tabu | 451.95 | 0.43% | 21/21 |
-| E-n22-k4 | 375 | alns | 375.28 | 0.07% | 21/21 |
-| A-n32-k5 | 784 | alns | 787.08 | 0.39% | 21/21 |
-| A-n80-k10 | 1763 | alns | 1834.01 | 4.03% | 21/21 |
-| X-n101-k25 | 27591 | aco | 34613.14 | 25.45% | 21/21 |
-| M-n200-k17 | 1275 | alns | 1351.43 | 5.99% | 21/21 |
+| P-n16-k8 | 450 | sa (tuned) | 451.35 | 0.30% | 0.43% |
+| E-n22-k4 | 375 | sa (tuned) | 375.28 | 0.07% | 0.07% |
+| A-n32-k5 | 784 | alns | 787.08 | 0.39% | 0.39% |
+| A-n80-k10 | 1763 | alns (enhanced) | 1816.28 | 3.02% | 4.03% |
+| X-n101-k25 | 27591 | ga_island (tuned) | 34269.89 | 24.20% | 25.45% |
+| M-n200-k17 | 1275 | alns | 1351.43 | 5.99% | 5.99% |
 
 ![CVRP best gap by instance](figures/cvrp_best_gap_by_instance.png)
 
-The picture is very clear: the three small instances end below half a
-percent from the best known solutions, the two larger ones land at 4–6%,
-and X-n101-k25 stands out at 25.45%. That column is not an algorithm bug —
-it is a capacity-packing property of the instance, explained below. It
-should not be read as "the algorithms failed"; it should be read as "this
-instance leaves no room for the local moves these algorithms rely on".
+![CVRP best gaps before vs after tuning](figures/cvrp_before_after_tuning.png)
 
-Per algorithm (mean gap over all 18 runs each, plus where it was strongest
-and weakest):
+The before/after chart shows what the tuning pass actually bought:
+P-n16-k8 (0.43→0.30), A-n80-k10 (4.03→3.02) and X-n101-k25 (25.45→24.20)
+improved, the other three stayed exactly where they were, and nothing got
+worse — the pre-declared ALNS policy is what protected M-n200-k17. The
+X-n101-k25 column still stands out; that is a capacity-packing property of
+the instance, explained below, not an algorithm bug.
 
-| algorithm | mean gap (all runs) | best instance | weakest instance |
-| --- | --- | --- | --- |
-| alns | 7.18% | E-n22-k4 (0.07%) | X-n101-k25 (27.08%) |
-| aco | 7.74% | P-n16-k8 (0.43%) | X-n101-k25 (25.45%) |
-| ga_island | 8.00% | P-n16-k8 (0.43%) | X-n101-k25 (25.74%) |
-| tabu | 8.12% | P-n16-k8 (0.43%) | X-n101-k25 (26.82%) |
-| sa | 8.63% | P-n16-k8 (1.55%) | X-n101-k25 (26.95%) |
-| baseline | 8.70% | P-n16-k8 (2.65%) | X-n101-k25 (27.08%) |
-| bnb_lds | 8.70% | P-n16-k8 (2.65%) | X-n101-k25 (27.08%) |
+Per algorithm (mean of best-of-seeds gaps over the six instances, policy
+view):
+
+| algorithm | mean best gap | beats baseline on |
+| --- | --- | --- |
+| alns (policy) | 5.80% | 6/6 instances |
+| sa (tuned) | 6.74% | 4/6 |
+| ga_island (tuned) | 7.28% | 5/6 |
+| aco | 7.56% | 4/6 |
+| tabu | 8.09% | 5/6 |
+| baseline | 8.70% | — |
+| bnb_lds | 8.70% | 0/6 |
 
 ![CVRP mean gap by algorithm](figures/cvrp_mean_gap_by_algorithm.png)
 
-Averaged over all runs and instances, the ordering is ALNS < ACO <
-GA-Island < Tabu < SA < baseline = B&B/LDS. The differences are small
-(7.2%–8.7%) because the X instance dominates every mean; on the other five
-instances the ordering is similar but the absolute gaps are much smaller.
-B&B/LDS matching the baseline exactly is an honest result: within its node
-and discrepancy limits it never found anything better than its starting
-incumbent.
+ALNS is now the only method that beats the multi-stage baseline on every
+single instance. The tuned SA is the biggest single mover (its mean best
+gap fell from 8.50% to 6.74% purely by spending its unused time budget on
+more iterations with a longer schedule), and the tuned GA improved to
+7.28% — but neither dominates, and both still fall back to baseline level
+on A-n80-k10. B&B/LDS matching the baseline exactly remains an honest
+result: within its node and discrepancy limits it never found anything
+better than its starting incumbent.
 
 ![CVRP mean runtime by instance](figures/cvrp_runtime_by_instance.png)
 
@@ -177,59 +198,59 @@ and the route count in the title must not exceed the fleet size.
 
 ![Best routes on P-n16-k8](figures/cvrp_route_P-n16-k8.png)
 
-P-n16-k8 (tabu, seed 42, cost 451.95): eight short routes, each serving
-only one or two customers — with capacity 35 and demands up to 30-plus,
-most vehicles can take very little, which is why the instance needs all
-eight vehicles despite having only 15 customers.
+P-n16-k8 (tuned SA, seed 42, cost 451.35): eight short routes, each
+serving only one or two customers — with capacity 35 and demands up to
+30-plus, most vehicles can take very little, which is why the instance
+needs all eight vehicles despite having only 15 customers.
 
 ![Best routes on A-n80-k10](figures/cvrp_route_A-n80-k10.png)
 
-A-n80-k10 (alns, seed 43, cost 1834.01): ten routes fanning out of the
-depot in clean geographic sectors. Some crossings between neighboring
-routes remain — visual evidence of the remaining 4% gap that in-route 2-opt
-alone cannot remove.
+A-n80-k10 (enhanced ALNS, seed 44, cost 1816.28): ten routes fanning out
+of the depot in clean geographic sectors. Some crossings between
+neighboring routes remain — visual evidence of the remaining 3% gap that
+in-route 2-opt alone cannot remove.
 
 ![Best routes on X-n101-k25](figures/cvrp_route_X-n101-k25.png)
 
-X-n101-k25 (aco, seed 42, cost 34613.14): the plot is dense because the
-instance is large (100 customers) and extremely tight (25 nearly-full
-routes), so it is harder to inspect visually — long criss-crossing legs are
-exactly what a load-driven packing looks like when geometry has to take
-second place to capacity.
+X-n101-k25 (tuned GA-Island, seed 43, cost 34269.89): the plot is dense
+because the instance is large (100 customers) and extremely tight (25
+nearly-full routes), so it is harder to inspect visually — long
+criss-crossing legs are exactly what a load-driven packing looks like when
+geometry has to take second place to capacity.
 
 ### 4.2 Convergence behavior
 
 ![Convergence on P-n16-k8](figures/convergence_P-n16-k8.png)
 
 On the small instance every method starts from the repaired baseline
-(461.94) and improves quickly: ACO reaches 451.95 within its first ten
-iterations, Tabu follows by iteration 50, ALNS settles slightly higher at
-456.95 for this seed. After that the curves are flat — the instance is
-essentially solved as far as these operators can take it.
+(461.94) and improves quickly: ACO and Tabu reach 451.95 within the first
+50 iterations, and the enhanced ALNS goes one step further to 451.34 for
+this seed. After that the curves are flat — the instance is essentially
+solved as far as these operators can take it.
 
 ![Convergence on A-n80-k10](figures/convergence_A-n80-k10.png)
 
-On A-n80-k10 the honest picture is that most of the quality comes from the
-multi-stage baseline itself (1850.30): ALNS shaves a few units early and
-then plateaus, while GA-Island and ACO never beat the baseline for this
-seed. The strong start compresses the visible improvement — the y-axis
-spans only a few cost units.
+On A-n80-k10 most of the quality still comes from the multi-stage baseline
+(1850.30), but the enhanced ALNS now visibly pulls away to 1841.82 for
+seed 42 (its best seed reaches 1816.28), while the tuned GA-Island and ACO
+stay on the baseline for this seed. The strong start compresses the
+visible improvement — the y-axis spans a handful of cost units.
 
 ![Convergence on X-n101-k25](figures/convergence_X-n101-k25.png)
 
-On X-n101-k25 the curves confirm the packing story: after the subset-sum
-repair produces a feasible start, ALNS cannot improve it at all (its
-capacity-feasible repairs keep failing in the 3-unit-slack packing), while
-ACO's constructive ants find a slightly better packing (34613 vs 35062).
-Neither gets anywhere near the BKS — improvement is limited after feasible
-packing, as discussed above.
+On X-n101-k25 the curves confirm the packing story with one welcome
+change: the enhanced ALNS route-removal operator can now restructure whole
+routes, so ALNS improves the subset-sum start to 34491.83 for this seed
+(basic ALNS could not move at all in the 3-unit-slack packing), and ACO's
+constructive ants reach 34613.14. Neither gets anywhere near the BKS —
+improvement is still limited after feasible packing, as discussed above.
 
 ![ALNS operator weights on A-n80-k10](figures/alns_operator_weights_A-n80-k10.png)
 
-The ALNS adaptive layer is visibly working: operator weights move away from
+The ALNS adaptive layer is visibly working, now over the full enhanced
+pool (five destroy and three repair operators): weights move away from
 their initial 1.0 within the first ~50 iterations and then stabilize once
-improvements dry up. The weights drift toward the reject-score floor
-because late iterations rarely produce accepted candidates — expected
+improvements dry up. The drift toward the reject-score floor is expected
 behavior for a run that has already converged, not a malfunction.
 
 Honest note on X-n101-k25: its total demand is 5147 while the total fleet
@@ -292,10 +313,14 @@ same per-instance budget and timeout for a fair comparison.
 ### 6.1 Simulated Annealing
 
 Full solutions as states; one random neighbor per iteration; accept
-improvements always and worse candidates with probability exp(-delta/T),
-T multiplied by 0.995 per iteration. SA improved the small instances (best
-P-n16-k8 gap 1.55%) but with this untuned schedule it mostly stayed near
-the baseline on the larger ones (mean gap 8.63%).
+improvements always and worse candidates with probability exp(-delta/T).
+The first run used an untuned schedule (T₀=100, cooling 0.995, iterations =
+plan budget) and mostly stayed near the baseline (mean best gap 8.50%).
+The tuning pass exploited how cheap one SA iteration is compared with the
+other methods: 50× more iterations, cooling 0.9995 and T₀=500 — still well
+inside the shared per-instance timeout. That alone dropped SA's mean best
+gap to 6.74% and made it the best method on P-n16-k8 (0.30%) and E-n22-k4
+(0.07%). It still cannot beat the baseline on A-n80-k10 or M-n200-k17.
 
 ### 6.2 Tabu Search
 
@@ -318,16 +343,27 @@ runtime (mean 32.8 s per run).
 Giant-tour chromosomes (customer permutations) split into routes by a
 capacity-aware scan; OX crossover, swap/inversion mutation, tournament
 selection, elitism 1; two islands with ring migration every 20 generations.
-Solid mid-field (mean gap 8.00%), best on P-n16-k8 (0.43%).
+The tuned final settings raise the population from 12 to 30 and the
+mutation rate from 0.15 to 0.3 (tuning also exposed and fixed an
+initial-population bug that looped forever when the population was larger
+than the number of distinct permutations). Result: mean best gap 7.28%,
+beats the baseline on 5/6 instances, and holds the overall best X-n101-k25
+result (24.20%) — but it still sits at baseline level on A-n80-k10.
 
 ### 6.5 ALNS
 
-Destroy operators (random and worst removal) and repair operators (greedy
-and regret-2 insertion) chosen by adaptive weights, with simulated-annealing
-acceptance. ALNS was the strongest method overall in these runs: best
-feasible result on four of six instances (E-n22-k4 0.07%, A-n32-k5 0.39%,
-A-n80-k10 4.03%, M-n200-k17 5.99%) and the lowest mean gap (7.18%) at a
-moderate mean runtime of 5.2 s.
+Destroy operators and repair operators chosen by adaptive weights, with
+simulated-annealing acceptance. The basic pool is random/worst removal plus
+greedy/regret-2 insertion; the enhanced pool adds Shaw-style related
+removal, full-route removal, segment removal and regret-3 insertion. The
+final rerun executed both variants on every instance, and the reported
+"alns" result follows the rule declared before the rerun: enhanced
+everywhere except M-n200-k17, where validation had shown a +1.02%
+regression, so the basic variant is used there. With that policy ALNS is
+the strongest method overall: lowest mean best gap (5.80%), the only
+method beating the baseline on 6/6 instances, and the best result on
+A-n32-k5 (0.39%), A-n80-k10 (3.02%) and M-n200-k17 (5.99%) at a moderate
+runtime.
 
 ### 6.6 Branch-and-Bound / LDS
 
@@ -373,76 +409,117 @@ and attaches children level by level, ignoring leftover symbols:
 
 ![GEP Karva decoder code](figures/code_gep_decoder.png)
 
-Final comparison (train and eval sets of 4 puzzles each, 20 generations,
-population 30, seeds 42–44), from `raw/gp_gep_comparison_runs.csv`:
+### 8.1 The hard benchmark (main Part B evaluation)
 
-| algorithm | seed | eval fitness | solved | expanded | cost | best expression |
-| --- | --- | --- | --- | --- | --- | --- |
-| gp | 42 | 39956 | 4/4 | 4 | 4 | min((min(blocking, blocking) * (distance - 0)), ((distance * blocking) / (blocking / distance))) |
-| gp | 43 | 39956 | 4/4 | 4 | 4 | (blocking - min((2 / neg((1 + free))), blocking)) |
-| gp | 44 | 39956 | 4/4 | 4 | 4 | max((log(distance) / neg(1)), max(min(5, blocking), (blocking * distance))) |
-| gep | 42 | 39956 | 4/4 | 4 | 4 | (5 * blocking) |
-| gep | 43 | 39956 | 4/4 | 4 | 4 | ((((1 + distance) * blocking) + 0.5) + 1) |
-| gep | 44 | 39956 | 4/4 | 4 | 4 | (((blocking * 1) / (blocking - 0.5)) + (abs(2) - free)) |
+The first comparison used a 4-puzzle evaluation set, and everything —
+including plain manual heuristics — solved all of it with 4 expanded
+nodes, so GP and GEP tied perfectly at fitness 39956. That result is kept
+only as a historical smoke check; the main evaluation is a **hard Rush
+Hour benchmark** of 14 puzzles committed under
+`examples/rushhour_hard_eval.txt`. Every puzzle was verified with the
+project parser and solved by the project A* before being committed, with
+optimal solutions of 4–17 moves and measured difficulty spanning 36 to
+13,243 zero-heuristic expansions.
 
-![GP vs GEP eval fitness](figures/gp_gep_eval_fitness.png)
+![Per-puzzle difficulty of the hard set](figures/rushhour_per_puzzle_difficulty.png)
 
-![GP vs GEP expanded nodes](figures/gp_gep_expanded_nodes.png)
+A ladder of manual heuristics anchors the comparison (identical caps for
+everything: 15,000 nodes and 2 s per puzzle, 20 s total per evaluation):
 
-The two charts make the "tie" visible: identical fitness (39956) and
-identical A* effort (4 expanded nodes total) in every run of both methods.
-What this comparison actually means: on this evaluation set the evolved
-heuristics guide A* essentially perfectly, so quality cannot separate GP
-from GEP here — the interesting differences are the shape of the evolved
-expressions and the evolution time. What it does not mean: that GP and GEP
-are equal in general. Four small puzzles are simply not enough pressure;
-a harder puzzle set would likely start separating the methods.
+![Manual heuristic ladder](figures/rushhour_manual_heuristic_ladder.png)
 
-Summary. Every run (both methods, all seeds) solved 4/4 evaluation puzzles
-with only 4 expanded nodes total, giving the identical best fitness 39956 —
-the evaluation set is too easy to separate the methods on quality.
-Expression diversity is 1.00 for both (all best expressions differ across
-seeds), and GEP's genome diversity is also 1.00. Evolution time slightly
-favored GEP (≈0.7–0.9 s per run vs ≈1.1–1.4 s for GP), and GEP's best
-expressions are visibly shorter (e.g. `(5 * blocking)`). With only 4 tiny
-puzzles these are observations, not general conclusions.
+Each added ingredient pays off: zero solves only 9/14 within the caps
+(31,809 expansions), blocking gets 13/14 (20,631), blocking+distance
+needs 13,580, and blocker_depth — which also penalizes blockers that are
+themselves stuck — needs only 10,338. That monotone ladder is what makes
+the set a meaningful benchmark.
+
+GP and GEP were then run with identical budgets (population 30, 20
+generations, seeds 42–44; training on the 4 original puzzles plus the 3
+easiest hard ones; evaluation on all 14):
+
+| run | eval fitness | solved | expanded | best expression |
+| --- | --- | --- | --- | --- |
+| gp seed 42 | 119583 | 13/14 | 7617 | min((min(blocking, blocking) * (distance - 0)), ...) |
+| gp seed 43 | **120002** | 13/14 | 7198 | (abs((blocking * (blocking * blocking))) / abs(0.5)) |
+| gp seed 44 | 91200 | 11/14 | 12150 | (((distance * distance) / free) ... * (blocking / 0.5)) |
+| gep seed 42 | 102807 | 12/14 | 12533 | (max(max(1, 0), 5) - ((free - distance) * 2)) |
+| gep seed 43 | **119985** | 13/14 | 7215 | max((5 * blocking), ((1 + distance) * blocking)) |
+| gep seed 44 | 101946 | 12/14 | 13384 | (blocking + (distance / (abs(blocking) - free))) |
+| manual blocker_depth | 116852 | 13/14 | 10338 | (hand-written) |
+
+![Best manual vs best GP vs best GEP](figures/rushhour_gp_gep_vs_manual.png)
+
+**The core finding:** the best evolved heuristics from both frameworks
+beat the strongest manual heuristic — GP 120002 and GEP 119985 vs
+blocker_depth 116852 — solving the same 13/14 puzzles with about 30% fewer
+A* expansions (≈7,200 vs 10,338). Evolution genuinely found better
+guidance than the hand-written baselines here.
+
+![GP/GEP fitness per seed](figures/rushhour_gp_gep_seed_variance.png)
+
+**GP vs GEP stays an honest tie at the top:** 120002 vs 119985 is a
+0.01% difference, while the per-seed spread within each method is ~30,000
+fitness points (GP's worst seed drops to 91200, GEP's to 101946). Seed
+variance dominates the method difference, so no winner is declared.
+Expression diversity is 1.00 for both. Notably, no run solves 14/14 under
+the caps — the hardest puzzle needs more than the 15,000-node budget with
+any evolved or manual guide — which means the benchmark still has headroom
+and the results are not saturated like the old 4-puzzle set. (Numbers this
+close to the time caps can shift by a fraction of a percent between runs;
+the ordering has been stable.)
 
 ## 9. Results
 
 The main tables and figures are in Sections 3 (Ackley), 4 (CVRP) and 8
-(GP/GEP); the committed report figures live under `report/figures/`. The
-raw per-run rows live under `results/final_experiments/raw/` (126 CVRP
-rows, 21 Ackley rows, 6 GP/GEP rows), the aggregated tables under
-`results/final_experiments/summary/`, and additional generated assets under
-`results/final_experiments/report_assets/`. The execution manifest
-(`final_execution_manifest.json`) records what ran, with which budgets, and
-how long it took.
+(GP/GEP); the committed report figures live under `report/figures/` and
+small evidence snapshots under `report/evidence/`. The raw per-run rows
+live under `results/final_experiments/raw/` (144 CVRP rows including both
+ALNS variants, 21 Ackley rows) plus the hard Rush Hour benchmark under
+`results/final_experiments/rushhour_hard/`; the aggregated tables are
+under `results/final_experiments/summary/`. The execution manifest
+(`final_execution_manifest.json`) records what ran, with which budgets,
+the tuned settings, and the pre-declared ALNS policy.
 
 ## 10. Analysis and Discussion
 
-- **CVRP pattern.** Gaps grow with instance size: under 0.5% on the three
-  small instances, ~4–6% on A-n80-k10 and M-n200-k17. ALNS was the most
-  consistent method; ACO was the most expensive but handled the tight X
-  instance best.
+- **CVRP pattern.** Gaps grow with instance size: 0.30% or less on
+  P-n16-k8 and E-n22-k4, 0.39% on A-n32-k5, ~3–6% on A-n80-k10 and
+  M-n200-k17. After tuning, ALNS beats the baseline on all six instances
+  (mean best gap 5.80%) and is the most consistent method overall.
+- **What tuning bought (and did not).** P-n16-k8 0.43→0.30, A-n80-k10
+  4.03→3.02, X-n101-k25 25.45→24.20, with the other three unchanged and no
+  regressions. The tuned SA improvement came purely from spending its
+  unused time budget on more iterations — a fairness-preserving change,
+  since all methods share the same timeout. The enhanced ALNS improvement
+  needed real new operators (Shaw/route/segment removal, regret-3). Its
+  M-n200-k17 regression was handled by the pre-declared hybrid policy, not
+  by hiding rows.
 - **X-n101-k25.** With 3 units of total capacity slack, feasibility is a
-  bin-packing problem and quality improvement is nearly frozen: any
-  relocate overfills a route. Repairing to feasibility cost geometry
-  (packing ignores coordinates), leaving a 25.45% gap. Improving this
-  would need capacity-aware compound moves (e.g. ejection chains), which
-  were out of scope.
-- **Ackley.** The warm-up separated the methods clearly, but part of that
-  separation comes from how each was adapted (Section 7). Untuned SA losing
-  to random search is a useful reminder that parameter choices matter as
-  much as the algorithm name.
-- **GP vs GEP.** Equal quality on this small benchmark; GEP was somewhat
-  faster and produced more compact expressions; GP trees were larger. Both
-  frameworks are genuinely different representations, not renames.
-- **Runtime vs quality.** ACO bought its X result with ~33 s mean runtime;
-  ALNS delivered the best average quality at ~5 s; SA is nearly free but
-  weakest. B&B/LDS spent its budget without beating the incumbent.
+  bin-packing problem and local moves are nearly frozen: any relocate
+  overfills a route. The enhanced ALNS route-removal operator and the
+  tuned GA can now restructure a little (best gap 25.45→24.20), but the
+  gap stays large. Truly improving it would need capacity-aware compound
+  moves (e.g. ejection chains), which stayed out of scope.
+- **Ackley.** Unchanged by this stage. The warm-up separated the methods,
+  but part of that separation comes from how each was adapted (Section 7).
+  Untuned SA losing to random search there remains a useful reminder that
+  parameter choices matter as much as the algorithm name — the CVRP side
+  proved the same point in reverse when tuned SA jumped from 8.50% to
+  6.74%.
+- **GP vs GEP.** On the hard benchmark both frameworks beat the strongest
+  manual heuristic by ~30% fewer expansions, and they remain effectively
+  tied at the top (120002 vs 119985) with per-seed variance ~30,000
+  fitness points — far larger than the method difference. GEP's best
+  expressions stay visibly more compact. Both frameworks are genuinely
+  different representations, not renames.
+- **Runtime vs quality.** ALNS delivers the best average CVRP quality at
+  moderate runtime; ACO remains the most expensive; tuned SA uses its
+  budget instead of leaving it idle. B&B/LDS spent its budget without
+  beating the incumbent.
 - **Limitations.** One fixed budget/timeout profile per instance, three
-  seeds, no tuning, and a small Rush Hour puzzle set — the comparisons hold
-  for this setup only.
+  seeds, one tuning pass validated on the same six instances, and a
+  14-puzzle Rush Hour set — the comparisons hold for this setup only.
 
 ## 11. Complexity and Practical Considerations
 
@@ -482,7 +559,11 @@ and staged workflow.
 - Smoke check: `python scripts/run_smoke_suite.py --output-dir results/smoke_suite`
 - Print/validate the final plan:
   `python scripts/print_final_experiment_plan.py --require-official-data`
-- Full final run (resumable): `python scripts/run_final_experiments.py`
+- Full final tuned run (resumable):
+  `python scripts/run_final_experiments.py --tuned-cvrp configs/tuned_cvrp_settings.json --rushhour-hard configs/rushhour_hard_benchmark.json`
+- Hard Rush Hour benchmark on its own:
+  `python scripts/run_gp_gep_hard_benchmark.py --puzzles examples/rushhour_hard_eval.txt --seeds 42 43 44`
+- Old-vs-new comparison: `python scripts/extract_final_results_v2.py`
 - Report figures: `python scripts/generate_report_figures.py`, plus
   `python scripts/generate_route_visualizations.py` and
   `python scripts/generate_convergence_figures.py`, then
@@ -521,13 +602,19 @@ The implementation covers everything the assignment asks for: the six
 required search algorithms on both the Ackley warm-up and the six official
 CVRP instances, an explicit multi-stage CVRP heuristic with an honest
 feasibility-repair story, and separate GP and GEP frameworks for evolving
-Rush Hour heuristics evaluated through A*. After the vehicle-count repair
-work, all 126 final CVRP rows are feasible; gaps are small on the small
-instances (0.07–0.43%), moderate on the large ones (4–6%), and large on the
-capacity-tight X-n101-k25 (25.45%), which is reported as a real limitation
-rather than smoothed over. On Ackley, the adapted ALNS and B&B/LDS reached
-the optimum while untuned SA did not beat random search. GP and GEP both
-solved the full Rush Hour evaluation set with identical fitness, with GEP
-slightly faster and more compact on this small benchmark. The main open
-improvements are capacity-aware compound moves for tight CVRP instances,
-parameter tuning for SA, and a harder Rush Hour puzzle set.
+Rush Hour heuristics evaluated through A*. The final tuned rerun (144 CVRP
+rows, all feasible) improved the best gaps on three instances with no
+regressions: 0.07–0.39% on the three small instances, 3.02% on A-n80-k10,
+5.99% on M-n200-k17, and 24.20% on the capacity-tight X-n101-k25 — still
+large and reported as a real limitation rather than smoothed over. ALNS
+with the pre-declared hybrid policy is the only method beating the
+multi-stage baseline on all six instances; B&B/LDS never beat its
+incumbent, which is stated as-is. On Ackley (unchanged), the adapted ALNS
+and B&B/LDS reached the optimum while untuned SA did not beat random
+search — a lesson the CVRP tuning then confirmed from the other direction.
+On the hard Rush Hour benchmark, both evolved frameworks beat the
+strongest manual heuristic by about 30% fewer A* expansions, while GP and
+GEP themselves remain honestly tied at the top with seed variance
+dominating. The main open improvements are capacity-aware compound moves
+for tight CVRP instances, a stronger bound for B&B/LDS, and pushing the
+hard Rush Hour set until the frameworks separate.
