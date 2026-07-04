@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 2-A — CVRP multi-stage baseline done. No metaheuristic solvers or GP/GEP yet.
+Stage 2-B — CVRP baseline and Rush Hour evaluator done. No metaheuristic solvers or GP/GEP yet.
 
 ## Requirements
 
@@ -94,6 +94,22 @@ Optionally write the solution to a file:
 
 ```
 python scripts/run_cvrp_baseline.py --instance examples/tiny_cvrp.vrp --output results/tiny_baseline_solution.txt
+```
+
+## Stage 2-B: Rush Hour evaluator
+
+A small evaluator was added to test Rush Hour heuristics safely. Every A* call
+has a node cap and a time cap, and a whole evaluation has a total time budget,
+so a bad heuristic cannot hang the run (this protects the later GP/GEP stages).
+
+```
+python scripts/evaluate_rushhour_heuristics.py --puzzles examples/rushhour_eval_puzzles.txt
+```
+
+Optional CSV summary:
+
+```
+python scripts/evaluate_rushhour_heuristics.py --puzzles examples/rushhour_eval_puzzles.txt --output results/rushhour_heuristics.csv
 ```
 
 ## Usage
