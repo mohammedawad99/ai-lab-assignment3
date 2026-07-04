@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 6-B — all six CVRP algorithm foundations plus GP and GEP for Rush Hour done.
+Stage 6-C — all six CVRP algorithm foundations, GP and GEP for Rush Hour, and a GP vs GEP comparison runner done.
 
 ## Requirements
 
@@ -270,6 +270,25 @@ Optional history and best-expression output:
 
 ```
 python scripts/run_gep_rushhour.py --puzzles examples/rushhour_gep_train.txt --output results/gep_rushhour_history.csv --best-output results/gep_best_expression.txt
+```
+
+## Stage 6-C: GP vs GEP comparison
+
+A comparison runner was added for the GP and GEP Rush Hour heuristics. Both
+methods run with the same seeds, the same train/evaluation puzzle sets, and
+the same evaluation caps. The comparison records eval fitness, solved
+counts, expanded nodes, total solution cost, best expression/genome,
+expression/genome diversity across seeds, and runtime. Results describe the
+supplied puzzle sets and settings only.
+
+```
+python scripts/compare_gp_gep_rushhour.py --train-puzzles examples/rushhour_gp_train.txt --eval-puzzles examples/rushhour_gp_gep_eval.txt --seeds 42 43 44
+```
+
+Optional CSV/summary output:
+
+```
+python scripts/compare_gp_gep_rushhour.py --train-puzzles examples/rushhour_gp_train.txt --eval-puzzles examples/rushhour_gp_gep_eval.txt --output results/gp_gep_comparison_runs.csv --summary-output results/gp_gep_comparison_summary.txt
 ```
 
 ## Usage
