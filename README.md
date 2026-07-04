@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 8-A — smoke-suite runner and result summaries done. Final experiments on the official instances come next.
+Stage 8-B — official mini-run helper done. It runs once the official .vrp files are placed; final experiments come next.
 
 ## Requirements
 
@@ -378,6 +378,24 @@ runner to fill the gap column:
 ```
 python scripts/run_experiments.py --part cvrp --instances data/official_cvrp/P-n16-k8.vrp --algorithms sa tabu --seeds 42 --budget 100 --timeout 30 --bks data/cvrp_bks.csv --output results/example_with_bks.csv
 ```
+
+## Stage 8-B: Official mini-run
+
+A mini-run script was added for the official CVRP data. It first checks
+which official files are actually present under `data/official_cvrp/`. If no
+files are placed yet, it can skip cleanly:
+
+```
+python scripts/run_official_mini_experiment.py --allow-missing-data
+```
+
+Once the files are placed, run the readiness mini-run:
+
+```
+python scripts/run_official_mini_experiment.py --instances P-n16-k8 --algorithms baseline sa tabu aco ga_island alns bnb_lds --seeds 42 --budget 20 --timeout 30 --output-dir results/official_mini
+```
+
+This mini-run is only a readiness check, not the final benchmark.
 
 ## Usage
 

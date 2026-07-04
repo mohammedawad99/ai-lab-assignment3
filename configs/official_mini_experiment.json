@@ -1,0 +1,11 @@
+{
+  "data_dir": "data/official_cvrp",
+  "bks_path": "data/cvrp_bks.csv",
+  "default_instance": "P-n16-k8",
+  "algorithms": ["baseline", "sa", "tabu", "aco", "ga_island", "alns", "bnb_lds"],
+  "seeds": [42],
+  "budget": 20,
+  "timeout_sec": 30.0,
+  "output_dir": "results/official_mini",
+  "note": "This is a small readiness run, not the final benchmark."
+}
