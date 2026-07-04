@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 3-B — SA and Tabu Search foundations done (CVRP + Ackley). No ACO/GA/ALNS/B&B or GP/GEP yet.
+Stage 4-A — ACO foundations done (CVRP + Ackley). No GA/ALNS/B&B or GP/GEP yet.
 
 ## Requirements
 
@@ -147,6 +147,26 @@ Ackley:
 
 ```
 python scripts/run_ackley_sa_ts.py --algorithm both --iterations 1000 --seed 42
+```
+
+## Stage 4-A: ACO foundations
+
+Ant Colony Optimization was added for CVRP: ants build capacity-feasible
+solutions with probabilities based on pheromone and inverse distance, with
+evaporation and deposits on the iteration-best and global-best solutions.
+Because Ackley is continuous, the Ackley version is only a simple
+discretized ACO-style variant (bins per dimension), used for the warm-up.
+
+CVRP:
+
+```
+python scripts/run_cvrp_aco.py --instance examples/tiny_cvrp.vrp --iterations 100 --ants 20 --seed 42
+```
+
+Ackley:
+
+```
+python scripts/run_ackley_aco.py --iterations 100 --ants 20 --seed 42
 ```
 
 ## Usage
