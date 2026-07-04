@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 6-C — all six CVRP algorithm foundations, GP and GEP for Rush Hour, and a GP vs GEP comparison runner done.
+Stage 7-A — all algorithm foundations plus a unified experiment runner done. Official benchmark data and final experiments come next.
 
 ## Requirements
 
@@ -289,6 +289,32 @@ Optional CSV/summary output:
 
 ```
 python scripts/compare_gp_gep_rushhour.py --train-puzzles examples/rushhour_gp_train.txt --eval-puzzles examples/rushhour_gp_gep_eval.txt --output results/gp_gep_comparison_runs.csv --summary-output results/gp_gep_comparison_summary.txt
+```
+
+## Stage 7-A: Unified experiment runner
+
+A unified runner was added for CVRP and Ackley experiments. It runs the six
+required algorithms (sa, tabu, aco, ga_island, alns, bnb_lds) with shared
+seeds, budget, and timeout, and writes one CSV row per run. The multi-stage
+baseline (`--include-baseline`) and random search (`--include-random-search`)
+are optional reference methods, not part of the six required algorithms.
+
+CVRP smoke run:
+
+```
+python scripts/run_experiments.py --part cvrp --instances examples/tiny_cvrp.vrp --algorithms sa tabu aco --seeds 42 --budget 20 --timeout 5 --output results/cvrp_smoke.csv
+```
+
+Ackley smoke run:
+
+```
+python scripts/run_experiments.py --part ackley --algorithms sa tabu aco --seeds 42 --budget 20 --timeout 5 --dimension 4 --output results/ackley_smoke.csv
+```
+
+Both parts:
+
+```
+python scripts/run_experiments.py --part both --instances examples/tiny_cvrp.vrp --algorithms sa tabu aco --seeds 42 --budget 20 --timeout 5 --dimension 4 --output-dir results/smoke_experiments
 ```
 
 ## Usage
