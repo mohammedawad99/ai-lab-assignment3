@@ -132,7 +132,8 @@ def test_report_skeleton_exists_with_sections():
 
 def test_report_skeleton_placeholders_and_facts():
     text = REPORT_PATH.read_text()
-    assert "[fill after final run" in text
+    # since Stage 9-C the report is filled, so no placeholders remain
+    assert "[fill after final run" not in text
     assert "d = 10" in text
     assert "[-32.768, 32.768]" in text
     for name in OFFICIAL_CVRP_INSTANCES:

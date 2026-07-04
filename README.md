@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 9-B — final experiment runner done and executed. The report is filled next.
+Stage 9-C — the Markdown report under `report/assignment3_report.md` was filled from the final CSV results. Final PDF/export is a later step; generated results remain under `results/` and are not committed.
 
 ## Requirements
 

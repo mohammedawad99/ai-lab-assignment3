@@ -2,41 +2,57 @@
 
 Course 203.3630 — Artificial Intelligence Lab.
 
-This file is the report skeleton. Sections marked [fill after final run]
-are completed only after the final experiments have been executed.
+All numbers in this report come from the generated result files under
+`results/final_experiments/` (final run with seeds 42, 43, 44 from
+`configs/final_experiment_plan.json`). Nothing was filled in by hand without
+a matching CSV row; `scripts/extract_report_numbers.py` prints the same
+facts for checking.
 
 ## 1. Introduction
 
-- What the assignment asks: [fill after final run — short problem statement]
-- Part A: solve the Ackley warm-up function and the CVRP with six search
-  algorithms, plus a multi-stage heuristic.
-- Part B: evolve Rush Hour heuristics with GP and GEP and evaluate them by
-  running A*.
+The assignment has two parts. Part A asks for six search algorithms
+(Simulated Annealing, Tabu Search, Ant Colony Optimization, a Genetic
+Algorithm with an Island Model, Adaptive Large Neighborhood Search, and
+Branch & Bound / Limited Discrepancy Search), first validated on the
+continuous Ackley function as a warm-up and then compared on six official
+CVRP benchmark instances, together with an explicit multi-stage heuristic.
+Part B asks for generative AI: evolving Rush Hour heuristic functions with
+both Genetic Programming (GP) and Gene Expression Programming (GEP), where
+every candidate heuristic is judged by actually running A* with it.
+
+All stochastic runs use the fixed seeds 42, 43 and 44 from the final
+experiment plan, so every number below is reproducible.
 
 ## 2. Implementation Overview
 
 ### 2.1 Project structure
 
-- `src/common/`, `src/ackley/`, `src/cvrp/` (+ `src/cvrp/solvers/`),
-  `src/rushhour/`, `src/gp/`, `src/gep/`, `src/experiments/`
-- `scripts/` for CLI entry points, `tests/` for pytest, `configs/` for JSON
-  settings, `data/` for benchmark files, `results/` for generated output.
-- [fill after final run — one short paragraph on how the parts connect]
+The code is a plain Python package: `src/common/` (timing), `src/ackley/`
+(function + the six adaptations), `src/cvrp/` (model, parser, cost,
+validation, baseline) with `src/cvrp/solvers/` (the six algorithms),
+`src/rushhour/` (board, A*, safe evaluator, GP/GEP comparison), `src/gp/`
+and `src/gep/` (separate frameworks), and `src/experiments/` (runners,
+summaries, report assets). `scripts/` holds the CLI entry points and
+`tests/` the pytest suite (268 tests at the time of the final run).
 
 ### 2.2 Reproducibility and command-line interface
 
-- Every stochastic run takes a `--seed`; all inputs come from CLI arguments.
-- Timeouts are CLI arguments so all algorithms get the same time budget on
-  the same instance.
-- [fill after final run — exact command list reference]
+Every run takes its inputs from CLI arguments — instance paths, seeds,
+budgets and timeouts are never hardcoded. Each experiment row is written to
+CSV with its seed, budget, timeout, costs, feasibility, errors and timing.
+The final settings live in `configs/final_experiment_plan.json` and the
+runner `scripts/run_final_experiments.py` is resumable (finished raw CSVs
+are skipped on a rerun).
 
 ### 2.3 Validation and safety checks
 
-- CVRP solutions are validated for depot structure, missing/duplicate
-  customers, capacity, and vehicle count.
-- Rush Hour heuristic evaluation has node caps, per-puzzle time caps, and a
-  total time budget, so a bad heuristic cannot hang a run.
-- [fill after final run — anything that fired during the final runs]
+Every CVRP solution is validated: routes start and end at the depot, no
+customer is missing or duplicated, capacity is respected, and the number of
+used routes must not exceed the vehicle count. Rows report `feasible` and
+the exact validation errors — nothing is silently fixed. Rush Hour
+heuristic evaluation runs A* under a node cap, a per-puzzle time cap and a
+total time budget, and an exception inside a candidate heuristic is
+recorded as a failed puzzle instead of crashing the run.
 
 ## 3. Part A — Ackley Function
 
@@ -45,15 +61,32 @@ The Ackley function for d dimensions:
 f(x) = -a * exp(-b * sqrt((1/d) * sum(x_i^2)))
        - exp((1/d) * sum(cos(c * x_i))) + a + e
 
-with a = 20, b = 0.2, c = 2*pi.
+with a = 20, b = 0.2, c = 2*pi, dimension d = 10, bounds
+x_i in [-32.768, 32.768], and the known optimum f(0, ..., 0) = 0.
 
-- Dimension: d = 10.
-- Bounds: x_i in [-32.768, 32.768] for all i.
-- Known optimum: f(0, ..., 0) = 0.
+Final results (3 seeds per algorithm, budget 500, timeout 60 s), from
+`summary/ackley_d10_summary.csv`:
 
-Results table: [fill after final run]
+| algorithm | runs | best_value | mean_best_value | std_best_value | mean_dist_from_origin | mean_elapsed (s) |
+| --- | --- | --- | --- | --- | --- | --- |
+| ackley_alns | 3 | 0.000000 | 0.000000 | 0.000000 | 0.000000 | 0.025 |
+| ackley_bnb_lds | 3 | 0.000000 | 0.000000 | 0.000000 | 0.000000 | 0.000 |
+| ackley_ga_island | 3 | 0.098 | 0.100 | 0.002 | 0.063 | 0.556 |
+| ackley_tabu | 3 | 2.636 | 3.018 | 0.359 | 1.466 | 0.120 |
+| ackley_aco | 3 | 10.241 | 11.763 | 1.406 | 11.187 | 0.506 |
+| random_search | 3 | 17.933 | 18.320 | 0.481 | 30.278 | 0.009 |
+| ackley_sa | 3 | 19.907 | 20.041 | 0.118 | 46.706 | 0.007 |
 
-Short analysis: [fill after final run]
+Short analysis. ALNS and B&B/LDS reached 0.000000 (six decimals) on every
+seed — but both benefit from knowing the optimum is at the origin: the ALNS
+"toward zero" repair operator and the B&B/LDS bin ranking by distance to
+zero point straight at it, so this says more about the adaptation than about
+general optimization strength. GA-Island got close (≈0.1) without such a
+hint. Tabu Search reached ≈2.6. ACO's coarse bins (10 per dimension) limit
+its precision. SA with the untuned parameters (initial temperature 10, step
+scale 1) actually ended worse than plain random search — an honest negative
+result: 500 local Gaussian steps from a random corner of a 10-dimensional
+box are simply not enough without parameter tuning.
 
 ## 4. Part A — CVRP
 
@@ -68,134 +101,232 @@ Official instances and best-known solutions (BKS):
 | X-n101-k25 | 27591 |
 | M-n200-k17 | 1275 |
 
-The BKS values are used only to compute the gap percentage of our results;
-they are not used by the algorithms themselves.
+The BKS values are used only to compute the gap percentage
+(100 · (cost − BKS) / BKS); the algorithms never see them.
 
-Result table: [fill after final run]
+Best feasible result per instance (7 algorithms × 3 seeds = 21 rows per
+instance; after the Stage 9-B2 repair **all 126 rows are feasible**):
 
-Route feasibility discussion: [fill after final run — include the
-vehicle-count repair story from P-n16-k8]
+| instance | BKS | best algorithm | best cost | best gap | feasible runs |
+| --- | --- | --- | --- | --- | --- |
+| P-n16-k8 | 450 | tabu | 451.95 | 0.43% | 21/21 |
+| E-n22-k4 | 375 | alns | 375.28 | 0.07% | 21/21 |
+| A-n32-k5 | 784 | alns | 787.08 | 0.39% | 21/21 |
+| A-n80-k10 | 1763 | alns | 1834.01 | 4.03% | 21/21 |
+| X-n101-k25 | 27591 | aco | 34613.14 | 25.45% | 21/21 |
+| M-n200-k17 | 1275 | alns | 1351.43 | 5.99% | 21/21 |
+
+Per algorithm (mean gap over all 18 runs each, plus where it was strongest
+and weakest):
+
+| algorithm | mean gap (all runs) | best instance | weakest instance |
+| --- | --- | --- | --- |
+| alns | 7.18% | E-n22-k4 (0.07%) | X-n101-k25 (27.08%) |
+| aco | 7.74% | P-n16-k8 (0.43%) | X-n101-k25 (25.45%) |
+| ga_island | 8.00% | P-n16-k8 (0.43%) | X-n101-k25 (25.74%) |
+| tabu | 8.12% | P-n16-k8 (0.43%) | X-n101-k25 (26.82%) |
+| sa | 8.63% | P-n16-k8 (1.55%) | X-n101-k25 (26.95%) |
+| baseline | 8.70% | P-n16-k8 (2.65%) | X-n101-k25 (27.08%) |
+| bnb_lds | 8.70% | P-n16-k8 (2.65%) | X-n101-k25 (27.08%) |
+
+Honest note on X-n101-k25: its total demand is 5147 while the total fleet
+capacity is 25 × 206 = 5150 — only 3 units of slack over 25 routes, so
+almost every route must be loaded completely full. Clarke-Wright needed 28
+routes there, and a subset-sum packing repair (Section 5) was required just
+to reach feasibility. That packing ignores geometry, and with nearly zero
+capacity slack the usual local moves (relocate, cross-route swap) are
+almost always capacity-infeasible, so the metaheuristics could barely
+improve the start. The 25.45% gap is real and reported as such.
 
 ## 5. Multi-stage CVRP Heuristic
 
-The baseline heuristic runs in stages:
+The baseline heuristic runs in five stages:
 
-1. Construction with Clarke-Wright savings.
-2. 2-opt improvement inside each route.
-3. Relocate improvement between routes.
-4. Vehicle-count feasibility repair (empty surplus routes and reinsert their
-   customers; rebuild by cheapest insertion as a fallback).
-5. Final validation.
+1. **Construction** with Clarke-Wright savings (merge route ends by
+   descending saving under the capacity limit).
+2. **2-opt** inside each route (reverse inner segments while improving).
+3. **Relocate** between routes (move single customers while improving).
+4. **Vehicle-count repair**: first empty surplus routes and reinsert their
+   customers at cheapest feasible positions; if that fails, deterministic
+   rebuilds (cheapest insertion, best-fit packing, sweep by polar angle);
+   as a last resort a subset-sum packing that fills vehicles one at a time
+   as full as possible over the integer demands — this is what makes
+   X-n101-k25 feasible.
+5. **Final validation** — a failed repair is returned as feasible=False
+   with errors, never hidden.
 
-Complexity discussion: [fill after final run — rough cost of each stage]
+Complexity: everything here is heuristic, not exact. One 2-opt pass over a
+route of length L costs O(L²) route evaluations and passes repeat until no
+improvement. The relocate pass scans all customer/position pairs, roughly
+O(n²) per pass. The repair adds packing work (the subset-sum table is
+O(n · capacity) per vehicle) but guarantees the route count fits the fleet,
+which turned out to be essential on two of the six official instances.
 
 ## 6. CVRP Algorithms
 
+All six start from the multi-stage baseline solution, share one random
+relocate/swap/2-opt neighborhood where applicable, and were run with the
+same per-instance budget and timeout for a fair comparison.
+
 ### 6.1 Simulated Annealing
 
-- Representation: full solutions; neighbors from random relocate/swap/2-opt.
-- Main parameters: initial temperature, cooling rate, iterations, timeout.
-- Behavior/results: [fill after final run]
+Full solutions as states; one random neighbor per iteration; accept
+improvements always and worse candidates with probability exp(-delta/T),
+T multiplied by 0.995 per iteration. SA improved the small instances (best
+P-n16-k8 gap 1.55%) but with this untuned schedule it mostly stayed near
+the baseline on the larger ones (mean gap 8.63%).
 
 ### 6.2 Tabu Search
 
-- Representation: full solutions; candidate sampling from the same
-  neighborhood; tabu key is the customer sequence per route; aspiration on
-  a new global best.
-- Main parameters: tabu tenure, candidates per iteration, iterations.
-- Behavior/results: [fill after final run]
+Samples 40 candidates per iteration from the shared neighborhood, forbids
+recently visited solutions via a customer-sequence signature (FIFO tenure
+30), with aspiration on a new global best. Tied for the best P-n16-k8
+result (0.43%) and was solid on the small instances; mean gap 8.12%.
 
 ### 6.3 Ant Colony Optimization
 
-- Representation: ants build routes customer by customer using pheromone
-  and inverse distance; capacity-aware; light 2-opt on ant solutions.
-- Main parameters: ants, alpha, beta, evaporation rate, deposit.
-- Behavior/results: [fill after final run]
+Ants build routes customer by customer with probability proportional to
+pheromone^α · (1/distance)^β under the capacity limit, light 2-opt per ant,
+evaporation plus deposits on the iteration and global best. ACO produced
+the best feasible X-n101-k25 result (25.45%) — its constructive nature
+sidesteps the frozen-local-moves problem there — at the price of the highest
+runtime (mean 32.8 s per run).
 
 ### 6.4 GA Island Model
 
-- Representation: giant-tour chromosome with a capacity-aware split;
-  OX crossover; swap/inversion mutation; ring migration between islands.
-- Main parameters: population size, islands, migration interval, rates.
-- Behavior/results: [fill after final run]
+Giant-tour chromosomes (customer permutations) split into routes by a
+capacity-aware scan; OX crossover, swap/inversion mutation, tournament
+selection, elitism 1; two islands with ring migration every 20 generations.
+Solid mid-field (mean gap 8.00%), best on P-n16-k8 (0.43%).
 
 ### 6.5 ALNS
 
-- Representation: destroy operators (random/worst removal) and repair
-  operators (greedy/regret-2 insertion) with adaptive weights and
-  simulated-annealing acceptance.
-- Main parameters: removal fraction, reaction rate, temperature schedule.
-- Behavior/results: [fill after final run]
+Destroy operators (random and worst removal) and repair operators (greedy
+and regret-2 insertion) chosen by adaptive weights, with simulated-annealing
+acceptance. ALNS was the strongest method overall in these runs: best
+feasible result on four of six instances (E-n22-k4 0.07%, A-n32-k5 0.39%,
+A-n80-k10 4.03%, M-n200-k17 5.99%) and the lowest mean gap (7.18%) at a
+moderate mean runtime of 5.2 s.
 
 ### 6.6 Branch-and-Bound / LDS
 
-- Representation: time-limited search over customer insertion decisions,
-  hardest customers first; discrepancy limit; partial-cost bound against
-  the incumbent from the baseline.
-- Main parameters: max discrepancy, max nodes, timeout.
-- Behavior/results: [fill after final run]
+A time-limited search over customer insertion decisions (hardest customers
+first), where taking the k-th cheapest insertion costs k discrepancy, with
+a partial-cost bound against the incumbent. It is exact-inspired, not a
+full exact solver for these sizes: within the node/discrepancy limits it
+never beat the baseline incumbent on any official instance, so its rows
+match the baseline (mean gap 8.70%). It proved useful mainly as a
+correctness reference.
 
 ## 7. Ackley Adaptations
 
-- SA and Tabu Search are natural continuous adaptations (Gaussian steps,
-  rounded-point tabu list).
-- ACO and B&B/LDS are discretized adaptations (bins per dimension); they
-  are honest warm-up variants, not canonical continuous versions.
-- GA-Island and ALNS work directly on continuous candidate vectors (blend
-  crossover / dimension-wise destroy and repair).
-- Note: [fill after final run — which adaptations behaved reasonably]
+SA and Tabu Search are natural continuous methods here (Gaussian steps; a
+tabu list of rounded points). GA-Island and ALNS operate directly on
+continuous vectors (blend crossover and Gaussian mutation; dimension-wise
+destroy and repair). ACO and B&B/LDS are honest discretizations (pheromone
+over bins per dimension; limited-discrepancy search over bin choices) — the
+canonical versions of these methods are combinatorial, and the report does
+not claim otherwise. Random search is only a sanity baseline. The results
+in Section 3 reflect exactly this: the methods whose adaptation points
+toward the origin (ALNS's toward-zero repair, B&B/LDS's zero-first bin
+order) reached it, the general-purpose ones (GA-Island, Tabu) got close,
+and untuned SA performed worst.
 
 ## 8. Part B — Rush Hour with GP and GEP
 
-- A* solver with g = number of moves and pluggable heuristics.
-- Heuristic candidates are evaluated by running A* on a puzzle set through
-  a safe evaluator (node cap, per-puzzle time cap, total time budget,
-  exceptions recorded as heuristic errors).
-- Fitness summary: solved count strongly rewarded; expanded nodes, solution
-  cost, timeouts, and node-cap hits penalized.
-- GP representation: expression trees over board features (distance to
-  exit, blocking cars, free exit cells) and small constants, protected math.
-- GEP representation: linear head/tail genome decoded as a Karva
-  K-expression into the same kind of expression.
-- Comparison metrics: solution quality, diversity of best
-  expressions/genomes, creation (evolution) time, solved puzzles, expanded
-  nodes, total solution cost.
+A* solves 6×6 Rush Hour boards with g = number of moves and a pluggable
+heuristic h. GP and GEP evolve h as expressions over three board features —
+distance of the red car to the exit, number of blocking cars, number of
+free exit cells — plus small constants, with protected operators
+(+, -, *, /, min, max, abs, neg, log). Fitness strongly rewards solved
+puzzles (10000 each) and penalizes expanded nodes, solution cost, timeouts
+and node-cap hits. Every evaluation runs under the safety caps from
+Section 2.3.
+
+GP uses expression trees with subtree crossover and mutation. GEP is a
+separate framework: a linear genome with a head (functions or terminals)
+and a tail (terminals only), decoded as a Karva K-expression; its operators
+are point mutation and one-/two-point crossover on the flat gene string.
+
+Final comparison (train and eval sets of 4 puzzles each, 20 generations,
+population 30, seeds 42–44), from `raw/gp_gep_comparison_runs.csv`:
+
+| algorithm | seed | eval fitness | solved | expanded | cost | best expression |
+| --- | --- | --- | --- | --- | --- | --- |
+| gp | 42 | 39956 | 4/4 | 4 | 4 | min((min(blocking, blocking) * (distance - 0)), ((distance * blocking) / (blocking / distance))) |
+| gp | 43 | 39956 | 4/4 | 4 | 4 | (blocking - min((2 / neg((1 + free))), blocking)) |
+| gp | 44 | 39956 | 4/4 | 4 | 4 | max((log(distance) / neg(1)), max(min(5, blocking), (blocking * distance))) |
+| gep | 42 | 39956 | 4/4 | 4 | 4 | (5 * blocking) |
+| gep | 43 | 39956 | 4/4 | 4 | 4 | ((((1 + distance) * blocking) + 0.5) + 1) |
+| gep | 44 | 39956 | 4/4 | 4 | 4 | (((blocking * 1) / (blocking - 0.5)) + (abs(2) - free)) |
+
+Summary. Every run (both methods, all seeds) solved 4/4 evaluation puzzles
+with only 4 expanded nodes total, giving the identical best fitness 39956 —
+the evaluation set is too easy to separate the methods on quality.
+Expression diversity is 1.00 for both (all best expressions differ across
+seeds), and GEP's genome diversity is also 1.00. Evolution time slightly
+favored GEP (≈0.7–0.9 s per run vs ≈1.1–1.4 s for GP), and GEP's best
+expressions are visibly shorter (e.g. `(5 * blocking)`). With only 4 tiny
+puzzles these are observations, not general conclusions.
 
 ## 9. Results
 
-### 9.1 Ackley results
-
-[fill after final run — table + short comments]
-
-### 9.2 CVRP results
-
-[fill after final run — per-instance table with best/mean cost and gap]
-
-### 9.3 Rush Hour GP/GEP results
-
-[fill after final run — comparison table, best expressions/genomes]
-
-### 9.4 Generated tables and plots
-
-[fill after final run — reference the generated assets under
-results/final_experiments/report_assets]
+The main tables are in Sections 3 (Ackley), 4 (CVRP) and 8 (GP/GEP). The
+raw per-run rows live under `results/final_experiments/raw/` (126 CVRP
+rows, 21 Ackley rows, 6 GP/GEP rows), the aggregated tables under
+`results/final_experiments/summary/`, and the generated markdown tables and
+PNG charts (best cost, gap, runtime, Ackley values, GP/GEP fitness) under
+`results/final_experiments/report_assets/`. The execution manifest
+(`final_execution_manifest.json`) records what ran, with which budgets, and
+how long it took.
 
 ## 10. Analysis and Discussion
 
-- Which algorithms were strong on small vs. large CVRP instances:
-  [fill after final run]
-- How gaps change with instance size: [fill after final run]
-- What happened on Ackley: [fill after final run]
-- GP vs GEP comparison: [fill after final run]
-- Runtime vs quality tradeoff: [fill after final run]
-- Limitations: [fill after final run]
+- **CVRP pattern.** Gaps grow with instance size: under 0.5% on the three
+  small instances, ~4–6% on A-n80-k10 and M-n200-k17. ALNS was the most
+  consistent method; ACO was the most expensive but handled the tight X
+  instance best.
+- **X-n101-k25.** With 3 units of total capacity slack, feasibility is a
+  bin-packing problem and quality improvement is nearly frozen: any
+  relocate overfills a route. Repairing to feasibility cost geometry
+  (packing ignores coordinates), leaving a 25.45% gap. Improving this
+  would need capacity-aware compound moves (e.g. ejection chains), which
+  were out of scope.
+- **Ackley.** The warm-up separated the methods clearly, but part of that
+  separation comes from how each was adapted (Section 7). Untuned SA losing
+  to random search is a useful reminder that parameter choices matter as
+  much as the algorithm name.
+- **GP vs GEP.** Equal quality on this small benchmark; GEP was somewhat
+  faster and produced more compact expressions; GP trees were larger. Both
+  frameworks are genuinely different representations, not renames.
+- **Runtime vs quality.** ACO bought its X result with ~33 s mean runtime;
+  ALNS delivered the best average quality at ~5 s; SA is nearly free but
+  weakest. B&B/LDS spent its budget without beating the incumbent.
+- **Limitations.** One fixed budget/timeout profile per instance, three
+  seeds, no tuning, and a small Rush Hour puzzle set — the comparisons hold
+  for this setup only.
 
 ## 11. Complexity and Practical Considerations
 
-- CVRP feasibility checking cost: [fill after final run]
-- Local search neighborhood costs: [fill after final run]
-- Variance across stochastic runs and seeds: [fill after final run]
-- Timeouts and fair comparison between algorithms: [fill after final run]
+- **Feasibility checking** is O(n) per solution and is run on every
+  candidate the metaheuristics accept, plus once on every final result —
+  the cost is small compared to neighborhood evaluation and it caught real
+  bugs (route-count violations) that pure cost comparison would hide.
+- **Neighborhood costs.** The shared relocate/swap/2-opt neighborhood costs
+  O(n) per sampled neighbor (copy + cost); Tabu's 40 candidates per
+  iteration make it ~40× SA per iteration, which matches the observed
+  runtimes.
+- **Stochastic variance.** Three seeds per configuration; the summary CSVs
+  report mean and standard deviation. The seeds are fixed in the plan, so
+  every row can be regenerated exactly.
+- **Timeouts and fairness.** All algorithms get the same timeout on the
+  same instance, so slower-per-iteration methods are not silently given
+  more work. Budgets differ per algorithm in meaning (iterations vs
+  generations vs nodes), which is why the timeout is the binding fairness
+  control on the large instances.
+- **No optimality claims.** Everything here is heuristic or time-limited;
+  the gaps against BKS quantify exactly how far the results are from the
+  best known solutions.
 
 ## 12. Use of AI Tools
 
@@ -206,15 +337,31 @@ and staged workflow.
 
 ## 13. Reproducibility
 
-- Python version: [fill after final run]
-- Install dependencies: `pip install -r requirements.txt`
+- Python 3.12.3, dependencies via `pip install -r requirements.txt`
+  (numpy, matplotlib, pandas, pytest).
+- Place the six official CVRPLIB files under `data/official_cvrp/` and
+  verify with `python scripts/check_official_cvrp_data.py --strict`.
 - Smoke check: `python scripts/run_smoke_suite.py --output-dir results/smoke_suite`
-- Final experiment commands: [fill after final run — path to the generated
-  command file, e.g. results/final_experiment_commands.txt]
-- Official CVRP data: place the six official `.vrp` files under
-  `data/official_cvrp/` and verify with
-  `python scripts/check_official_cvrp_data.py --strict`.
+- Print/validate the final plan:
+  `python scripts/print_final_experiment_plan.py --require-official-data`
+- Full final run (resumable): `python scripts/run_final_experiments.py`
+- Report facts: `python scripts/extract_report_numbers.py`
+- All generated results stay under `results/final_experiments/` and are not
+  committed to Git.
 
 ## 14. Conclusion
 
-[fill after final run]
+The implementation covers everything the assignment asks for: the six
+required search algorithms on both the Ackley warm-up and the six official
+CVRP instances, an explicit multi-stage CVRP heuristic with an honest
+feasibility-repair story, and separate GP and GEP frameworks for evolving
+Rush Hour heuristics evaluated through A*. After the vehicle-count repair
+work, all 126 final CVRP rows are feasible; gaps are small on the small
+instances (0.07–0.43%), moderate on the large ones (4–6%), and large on the
+capacity-tight X-n101-k25 (25.45%), which is reported as a real limitation
+rather than smoothed over. On Ackley, the adapted ALNS and B&B/LDS reached
+the optimum while untuned SA did not beat random search. GP and GEP both
+solved the full Rush Hour evaluation set with identical fitness, with GEP
+slightly faster and more compact on this small benchmark. The main open
+improvements are capacity-aware compound moves for tight CVRP instances,
+parameter tuning for SA, and a harder Rush Hour puzzle set.
