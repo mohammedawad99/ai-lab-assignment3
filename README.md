@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 0 — scaffold only. No algorithmic code yet.
+Stage 1-A — CVRP core (model, parser, cost, validation). No solvers yet.
 
 ## Requirements
 
@@ -40,6 +40,24 @@ Stage 0 — scaffold only. No algorithmic code yet.
 Official set — 6 instances only:
 
 P-n16-k8, E-n22-k4, A-n32-k5, A-n80-k10, X-n101-k25, M-n200-k17.
+
+## Stage 1-A: CVRP core
+
+Basic CVRP parser, data model, distance matrix, cost calculation and feasibility
+validation were added. A tiny sanity instance (known cost about 80.64) lives under
+`examples/`.
+
+Validate a solution file against an instance:
+
+```
+python scripts/validate_cvrp_solution.py --instance examples/tiny_cvrp.vrp --solution examples/tiny_solution.txt
+```
+
+Also print `0 0` lines for unused vehicles:
+
+```
+python scripts/validate_cvrp_solution.py --instance examples/tiny_cvrp.vrp --solution examples/tiny_solution.txt --include-unused-vehicles
+```
 
 ## Usage
 
