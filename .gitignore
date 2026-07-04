@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Generated artifacts
+results/*
+!results/.gitkeep
+plots/*
+!plots/.gitkeep
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
