@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 5-A — ALNS foundations done (CVRP + Ackley). No B&B/LDS or GP/GEP yet.
+Stage 5-B — all six CVRP algorithm foundations done (TS, ACO, SA, GA-Island, ALNS, B&B/LDS). No GP/GEP yet.
 
 ## Requirements
 
@@ -209,6 +209,29 @@ Ackley:
 
 ```
 python scripts/run_ackley_alns.py --iterations 100 --seed 42
+```
+
+## Stage 5-B: B&B / LDS foundations
+
+A time-limited Branch and Bound / Limited Discrepancy Search was added for
+CVRP. It searches over customer insertion decisions (hardest customers
+first): the cheapest insertion costs 0 discrepancy, the next 1, and so on,
+with a partial-cost bound against the incumbent. It starts from the
+multi-stage baseline as the incumbent and always returns the best feasible
+incumbent found. It is exact-inspired and time-limited, not a full exact
+CVRP solver for the large instances. A small discretized LDS-style version
+was also added for Ackley (bins per dimension, ranked by distance to zero).
+
+CVRP:
+
+```
+python scripts/run_cvrp_bnb_lds.py --instance examples/tiny_cvrp.vrp --max-discrepancy 3 --max-nodes 50000 --seed 42
+```
+
+Ackley:
+
+```
+python scripts/run_ackley_bnb_lds.py --dimension 10 --bins-per-dimension 7 --max-discrepancy 3 --seed 42
 ```
 
 ## Usage
