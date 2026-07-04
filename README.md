@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 3-A — Ackley warm-up framework done. No metaheuristic solvers or GP/GEP yet.
+Stage 3-B — SA and Tabu Search foundations done (CVRP + Ackley). No ACO/GA/ALNS/B&B or GP/GEP yet.
 
 ## Requirements
 
@@ -127,6 +127,26 @@ Optional CSV output:
 
 ```
 python scripts/run_ackley_random_search.py --iterations 1000 --seed 42 --output results/ackley_random_search.csv
+```
+
+## Stage 3-B: SA and Tabu foundations
+
+Simulated Annealing and Tabu Search were added as the first two working
+metaheuristic foundations (not tuned yet). The CVRP versions start from the
+multi-stage baseline solution and share a random relocate/swap/2-opt
+neighborhood. The Ackley versions reuse the Ackley framework and bounds.
+
+CVRP:
+
+```
+python scripts/run_cvrp_sa_ts.py --instance examples/tiny_cvrp.vrp --algorithm sa
+python scripts/run_cvrp_sa_ts.py --instance examples/tiny_cvrp.vrp --algorithm tabu
+```
+
+Ackley:
+
+```
+python scripts/run_ackley_sa_ts.py --algorithm both --iterations 1000 --seed 42
 ```
 
 ## Usage
