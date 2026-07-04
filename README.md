@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 8-C — report-asset generation (tables + plots) done. Final experiments and the report come next.
+Stage 9-A — final experiment plan and report skeleton done. Final experiment execution comes next.
 
 ## Requirements
 
@@ -415,6 +415,30 @@ python scripts/generate_report_assets.py --cvrp-raw results/smoke_suite/raw/cvrp
 The same command can point at official mini-run CSVs, for example
 `results/official_mini_after_repair/raw/official_mini_cvrp_results.csv` and
 `results/official_mini_after_repair/summary/official_mini_cvrp_summary.csv`.
+
+## Stage 9-A: Final plan and report skeleton
+
+A final experiment plan lives in `configs/final_experiment_plan.json`
+(per-instance budgets and timeouts, shared seeds). Check and print it with:
+
+```
+python scripts/print_final_experiment_plan.py
+```
+
+Write the exact run commands to a file:
+
+```
+python scripts/print_final_experiment_plan.py --write-commands results/final_experiment_commands.txt
+```
+
+If the official CVRP data is placed, stricter checking also verifies the files:
+
+```
+python scripts/print_final_experiment_plan.py --require-official-data
+```
+
+`report/assignment3_report.md` is only a skeleton — it is filled after the
+final results exist.
 
 ## Usage
 
