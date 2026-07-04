@@ -15,6 +15,10 @@ results/*
 plots/*
 !plots/.gitkeep
 
+# User-provided benchmark data and download metadata
+data/official_cvrp/*.vrp
+*Zone.Identifier*
+
 # OS / IDE
 .DS_Store
 .idea/
