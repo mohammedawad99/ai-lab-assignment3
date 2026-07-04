@@ -1,0 +1,10 @@
+{
+  "cvrp_raw": "results/smoke_suite/raw/cvrp_results.csv",
+  "cvrp_summary": "results/smoke_suite/summary/cvrp_summary.csv",
+  "ackley_raw": "results/smoke_suite/raw/ackley_results.csv",
+  "ackley_summary": "results/smoke_suite/summary/ackley_summary.csv",
+  "gp_gep_csv": "results/gp_gep_comparison_runs.csv",
+  "gp_gep_summary": "results/gp_gep_comparison_summary.txt",
+  "output_dir": "results/report_assets",
+  "note": "These are report assets generated from available CSV files, not the final report."
+}

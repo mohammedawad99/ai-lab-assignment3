@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 8-B — official mini-run helper done. It runs once the official .vrp files are placed; final experiments come next.
+Stage 8-C — report-asset generation (tables + plots) done. Final experiments and the report come next.
 
 ## Requirements
 
@@ -400,6 +400,21 @@ python scripts/run_official_mini_experiment.py --instances P-n16-k8 --algorithms
 ```
 
 This mini-run is only a readiness check, not the final benchmark.
+
+## Stage 8-C: Report assets
+
+Report-asset utilities were added for tables and plots. They read existing
+experiment CSV files and write markdown tables and PNG charts (or plain-text
+note files when data is missing). The generated assets go under `results/`
+and are not the final report.
+
+```
+python scripts/generate_report_assets.py --cvrp-raw results/smoke_suite/raw/cvrp_results.csv --cvrp-summary results/smoke_suite/summary/cvrp_summary.csv --ackley-raw results/smoke_suite/raw/ackley_results.csv --ackley-summary results/smoke_suite/summary/ackley_summary.csv --output-dir results/report_assets
+```
+
+The same command can point at official mini-run CSVs, for example
+`results/official_mini_after_repair/raw/official_mini_cvrp_results.csv` and
+`results/official_mini_after_repair/summary/official_mini_cvrp_summary.csv`.
 
 ## Usage
 
