@@ -32,6 +32,8 @@ def main():
     parser.add_argument("--max-time-per-puzzle", type=float, default=1.0)
     parser.add_argument("--max-total-time", type=float, default=10.0)
     parser.add_argument("--output", help="optional path for a CSV summary")
+    parser.add_argument("--per-puzzle-output",
+                        help="optional CSV with one row per puzzle per heuristic")
     args = parser.parse_args()
 
     for name in args.heuristics:
@@ -61,6 +63,25 @@ def main():
     if args.output:
         write_evaluation_csv(evaluations, args.output)
         print(f"csv written to: {args.output}")
+
+    if args.per_puzzle_output:
+        import csv
+        path = Path(args.per_puzzle_output)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["puzzle_id", "heuristic_name", "solved",
+                             "solution_length", "expanded_nodes",
+                             "generated_nodes", "runtime_seconds", "error"])
+            for evaluation in evaluations:
+                for r in evaluation.puzzle_results:
+                    writer.writerow([
+                        r.puzzle_index, evaluation.heuristic_name, r.solved,
+                        r.cost if r.solved else "", r.expanded_nodes,
+                        r.generated_nodes, f"{r.elapsed_time:.6f}",
+                        "" if r.solved else (r.stopped_reason or ""),
+                    ])
+        print(f"per-puzzle csv written to: {path}")
 
     sys.exit(0)
 

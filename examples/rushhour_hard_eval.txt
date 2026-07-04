@@ -1,0 +1,117 @@
+# Hard Rush Hour evaluation set (14 puzzles, easy -> hard).
+# Each puzzle was verified with the project parser and solved with the
+# project A* before being committed; the comments carry the measured
+# optimal move count and A* expansions (zero / blocking_distance heuristic).
+
+# puzzle 1: optimal moves 4, A* expanded 36 (zero) / 19 (blocking_distance)
+..D.GG
+HHDAAA
+XXIC..
+B.IC..
+B.ICF.
+BEE.F.
+
+# puzzle 2: optimal moves 5, A* expanded 77 (zero) / 44 (blocking_distance)
+F.CCC.
+F...H.
+FXXEH.
+I.DEBB
+I.DAAA
+..D.GG
+
+# puzzle 3: optimal moves 4, A* expanded 298 (zero) / 54 (blocking_distance)
+CCC.JG
+.EEEJG
+XXAD.I
+.FADBI
+KFADB.
+KF.HH.
+
+# puzzle 4: optimal moves 5, A* expanded 298 (zero) / 97 (blocking_distance)
+.ABBB.
+.A..I.
+.XX.IJ
+.FFFEJ
+GHCCED
+GH..ED
+
+# puzzle 5: optimal moves 4, A* expanded 315 (zero) / 21 (blocking_distance)
+.G..B.
+.GEEB.
+XXHDBF
+CAHD.F
+CAHD..
+C.....
+
+# puzzle 6: optimal moves 7, A* expanded 519 (zero) / 166 (blocking_distance)
+FFBDDD
+..BHHH
+..XXEI
+.C..EI
+.C.AAG
+.CJJJG
+
+# puzzle 7: optimal moves 5, A* expanded 706 (zero) / 282 (blocking_distance)
+.F.GC.
+JF.GC.
+J.XXAB
+.EEEAB
+I.HHA.
+IDDKK.
+
+# puzzle 8: optimal moves 5, A* expanded 1165 (zero) / 419 (blocking_distance)
+IDDD..
+I..C.G
+XX.CAG
+BBBCA.
+.EEFF.
+.HHH..
+
+# puzzle 9: optimal moves 4, A* expanded 1665 (zero) / 183 (blocking_distance)
+JAABBB
+JHH...
+.XX.EC
+DDD.EC
+..IIFF
+.GG...
+
+# puzzle 10: optimal moves 7, A* expanded 6259 (zero) / 2273 (blocking_distance)
+...C..
+.FFCAD
+XX.CAD
+GBB..H
+G..EEH
+GIII..
+
+# puzzle 11: optimal moves 10, A* expanded 6456 (zero) / 3964 (blocking_distance)
+F..HH.
+F..EG.
+.XXEG.
+III.G.
+CJAAAD
+CJBBBD
+
+# puzzle 12: optimal moves 9, A* expanded 9551 (zero) / 215 (blocking_distance)
+.JJA..
+.DDA.G
+XXC.FG
+HHC.FE
+..CIIE
+BBB..E
+
+# puzzle 13: optimal moves 17, A* expanded 12090 (zero) / 11324 (blocking_distance)
+.GGFFD
+...EJD
+CXXEJD
+C.B.J.
+.HBAA.
+.HB.II
+
+# puzzle 14: optimal moves 7, A* expanded 13243 (zero) / 898 (blocking_distance)
+..CC..
+.HHBED
+XX.BED
+I.GGED
+IFAAA.
+.FJJ..
+
