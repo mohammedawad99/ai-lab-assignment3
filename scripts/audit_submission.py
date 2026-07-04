@@ -95,8 +95,10 @@ def main():
         cvrp_path = REPO_ROOT / RESULT_FILES[0]
         if cvrp_path.exists():
             rows = count_data_rows(cvrp_path)
-            check("cvrp_all_instances has 126 rows", len(rows) == 126,
-                  f"{len(rows)} rows")
+            # 126 = 7 algorithms x 6 instances x 3 seeds;
+            # 144 = the same plus the alns_enhanced variant from Stage 10-C
+            check("cvrp_all_instances has 126 or 144 rows",
+                  len(rows) in (126, 144), f"{len(rows)} rows")
             check("all cvrp rows feasible",
                   all(str(r.get("feasible")).lower() in ("true", "yes", "1")
                       for r in rows))

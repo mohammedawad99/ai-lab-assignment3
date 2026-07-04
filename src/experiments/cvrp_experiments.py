@@ -74,7 +74,11 @@ def cvrp_result_to_row(result, instance_path, seed, budget_name, budget_value,
 
 def run_one_cvrp_algorithm(instance, instance_path, algorithm, seed, budget,
                            timeout_sec, output_dir=None,
-                           include_unused_vehicles=False, bks_cost=None) -> dict:
+                           include_unused_vehicles=False, bks_cost=None,
+                           tuned=None) -> dict:
+    """tuned is the optional dict from configs/tuned_cvrp_settings.json;
+    without it every algorithm runs with the original Stage 7-A settings."""
+    tuned = tuned or {}
     if algorithm == "baseline":
         baseline, timer = measure_time(build_multistage_baseline, instance)
         solution_path = None
@@ -105,8 +109,13 @@ def run_one_cvrp_algorithm(instance, instance_path, algorithm, seed, budget,
         }
 
     if algorithm == "sa":
-        result = run_cvrp_simulated_annealing(instance, iterations=budget,
-                                              seed=seed, timeout_sec=timeout_sec)
+        sa_cfg = tuned.get("sa", {})
+        result = run_cvrp_simulated_annealing(
+            instance,
+            iterations=budget * int(sa_cfg.get("iterations_factor", 1)),
+            seed=seed, timeout_sec=timeout_sec,
+            initial_temperature=sa_cfg.get("initial_temperature", 100.0),
+            cooling_rate=sa_cfg.get("cooling_rate", 0.995))
         budget_name = "iterations"
     elif algorithm == "tabu":
         result = run_cvrp_tabu_search(instance, iterations=budget, seed=seed,
@@ -117,13 +126,24 @@ def run_one_cvrp_algorithm(instance, instance_path, algorithm, seed, budget,
                               timeout_sec=timeout_sec)
         budget_name = "iterations"
     elif algorithm == "ga_island":
-        result = run_cvrp_ga_island(instance, generations=budget,
-                                    population_size=12, islands=2, seed=seed,
-                                    timeout_sec=timeout_sec)
+        ga_cfg = tuned.get("ga_island", {})
+        result = run_cvrp_ga_island(
+            instance, generations=budget,
+            population_size=int(ga_cfg.get("population_size", 12)),
+            islands=int(ga_cfg.get("islands", 2)),
+            mutation_rate=ga_cfg.get("mutation_rate", 0.15),
+            seed=seed, timeout_sec=timeout_sec)
         budget_name = "generations"
     elif algorithm == "alns":
         result = run_cvrp_alns(instance, iterations=budget, seed=seed,
                                timeout_sec=timeout_sec)
+        budget_name = "iterations"
+    elif algorithm == "alns_enhanced":
+        alns_cfg = tuned.get("alns", {})
+        result = run_cvrp_alns(instance, iterations=budget, seed=seed,
+                               timeout_sec=timeout_sec,
+                               enhanced_operators=True,
+                               reaction_rate=alns_cfg.get("reaction_rate", 0.2))
         budget_name = "iterations"
     elif algorithm == "bnb_lds":
         result = run_cvrp_bnb_lds(instance, max_discrepancy=3,
@@ -139,9 +159,13 @@ def run_one_cvrp_algorithm(instance, instance_path, algorithm, seed, budget,
             instance, result.best_solution, output_dir, algorithm, seed,
             include_unused_vehicles,
         )
-    return cvrp_result_to_row(result, instance_path, seed, budget_name, budget,
-                              timeout_sec, solution_path=solution_path,
-                              bks_cost=bks_cost)
+    row = cvrp_result_to_row(result, instance_path, seed, budget_name, budget,
+                             timeout_sec, solution_path=solution_path,
+                             bks_cost=bks_cost)
+    if algorithm == "alns_enhanced":
+        # both ALNS variants return algorithm="cvrp_alns"; keep the rows apart
+        row["algorithm"] = "cvrp_alns_enhanced"
+    return row
 
 
 def _error_row(instance_name, instance_path, algorithm, seed, timeout_sec, message) -> dict:
@@ -162,7 +186,7 @@ def _error_row(instance_name, instance_path, algorithm, seed, timeout_sec, messa
 def run_cvrp_experiments(instance_paths, algorithms, seeds, budget=100,
                          timeout_sec=10.0, output_dir=None,
                          include_unused_vehicles=False,
-                         bks_by_instance=None) -> list[dict]:
+                         bks_by_instance=None, tuned=None) -> list[dict]:
     rows = []
     for instance_path in instance_paths:
         instance = parse_cvrplib(instance_path)
@@ -174,7 +198,7 @@ def run_cvrp_experiments(instance_paths, algorithms, seeds, budget=100,
                         instance, instance_path, algorithm, seed, budget,
                         timeout_sec, output_dir=output_dir,
                         include_unused_vehicles=include_unused_vehicles,
-                        bks_cost=bks_cost,
+                        bks_cost=bks_cost, tuned=tuned,
                     ))
                 except Exception as exc:
                     # one failing run should not kill the whole experiment

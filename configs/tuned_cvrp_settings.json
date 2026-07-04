@@ -5,6 +5,10 @@
     "reaction_rate": 0.5,
     "validation_note": "Improves P-n16-k8 (-0.14), A-n80-k10 (-1.01) and X-n101-k25 (-2.07) best gaps, ties E/A32, but regresses M-n200-k17 by +1.02. Accepted for the net mean improvement; the solver default stays enhanced_operators=false so base behavior is unchanged without this config."
   },
+  "alns_policy": {
+    "main_result_rule": "Both ALNS variants run in the final rerun (rows cvrp_alns and cvrp_alns_enhanced). The assignment 'alns' result uses cvrp_alns_enhanced for every instance except M-n200-k17, where Stage 10-A validation showed a +1.02% regression; M-n200-k17 uses the basic cvrp_alns row. This rule was declared before the rerun, not after it.",
+    "enhanced_excluded_instances": ["M-n200-k17"]
+  },
   "sa": {
     "iterations_factor": 50,
     "cooling_rate": 0.9995,

@@ -24,6 +24,11 @@ def main():
     parser.add_argument("--skip-cvrp", action="store_true")
     parser.add_argument("--skip-ackley", action="store_true")
     parser.add_argument("--skip-rushhour", action="store_true")
+    parser.add_argument("--tuned-cvrp",
+                        help="tuned CVRP settings JSON (adds the alns_enhanced "
+                             "variant and applies tuned SA/GA parameters)")
+    parser.add_argument("--rushhour-hard",
+                        help="hard Rush Hour benchmark config JSON")
     args = parser.parse_args()
 
     try:
@@ -33,6 +38,8 @@ def main():
             run_cvrp=not args.skip_cvrp,
             run_ackley=not args.skip_ackley,
             run_rushhour=not args.skip_rushhour,
+            tuned_cvrp_path=args.tuned_cvrp,
+            rushhour_hard_path=args.rushhour_hard,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -59,6 +66,12 @@ def main():
         r = manifest["rushhour_run_info"]
         print(f"rushhour: rows={r['rows']} skipped_existing={r['skipped_existing']} "
               f"-> {r['output_csv']}")
+    if manifest.get("rushhour_hard_info"):
+        h = manifest["rushhour_hard_info"]
+        print(f"rushhour hard: rows={h['rows']} "
+              f"skipped_existing={h['skipped_existing']} -> {h['output_dir']}")
+    if manifest.get("alns_policy"):
+        print(f"alns policy: {manifest['alns_policy'].get('main_result_rule', '')}")
 
     combined = manifest["aggregation_info"]["cvrp_combined"]
     print(f"combined cvrp csv: {combined['output_path']} "
