@@ -1,0 +1,1473 @@
+%PDF-1.4
+%¬Ü «º
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+8 0 obj
+<< /Font 3 0 R /XObject 7 0 R /ExtGState 4 0 R /Pattern 5 0 R
+/Shading 6 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ] >>
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /Resources 8 0 R
+/MediaBox [ 0 0 595.44 841.68 ] /Contents 9 0 R /Annots 10 0 R >>
+endobj
+9 0 obj
+<< /Length 12 0 R >>
+stream
+/DeviceRGB CS
+/DeviceRGB cs
+1 j
+1 g 0 j 0 w 1 G 1 g
+0 0 m
+595.44 0 l
+595.44 841.68 l
+0 841.68 l
+h
+
+f
+0 g 1 j 1 w 0 G 0 g
+BT /F1 15 Tf
+43.2 788.61 Td
+(Assignment 3 Report) Tj ET
+BT /F2 8.5 Tf
+43.2 756.1755 Td
+(Course 203.3630 — Artificial Intelligence Lab.) Tj ET
+BT /F2 8.5 Tf
+43.2 734.5755 Td
+(All numbers in this report come from the generated result files under) Tj
+ET
+BT /F2 8.5 Tf
+43.2 719.4235 Td
+(`results/final_experiments/` \(final run with seeds 42, 43, 44 from) Tj
+ET
+BT /F2 8.5 Tf
+43.2 708.6235 Td
+
+(`configs/final_experiment_plan.json`\). Nothing was filled in by hand without)
+Tj ET
+BT /F2 8.5 Tf
+43.2 697.8235 Td
+(a matching CSV row; `scripts/extract_report_numbers.py` prints the same)
+Tj ET
+BT /F2 8.5 Tf
+43.2 691.3755 Td
+(facts for checking.) Tj ET
+BT /F1 12.5 Tf
+43.2 660.655 Td
+(1. Introduction) Tj ET
+BT /F2 8.5 Tf
+43.2 630.8955 Td
+(The assignment has two parts. Part A asks for six search algorithms) Tj
+ET
+BT /F2 8.5 Tf
+43.2 620.0955 Td
+(\(Simulated Annealing, Tabu Search, Ant Colony Optimization, a Genetic)
+Tj ET
+BT /F2 8.5 Tf
+43.2 609.2955 Td
+(Algorithm with an Island Model, Adaptive Large Neighborhood Search, and)
+Tj ET
+BT /F2 8.5 Tf
+43.2 598.4955 Td
+(Branch & Bound / Limited Discrepancy Search\), first validated on the) Tj
+ET
+BT /F2 8.5 Tf
+43.2 587.6955 Td
+
+(continuous Ackley function as a warm-up and then compared on six official)
+Tj ET
+BT /F2 8.5 Tf
+43.2 576.8955 Td
+
+(CVRP benchmark instances, together with an explicit multi-stage heuristic.)
+Tj ET
+BT /F2 8.5 Tf
+43.2 566.0955 Td
+
+(Part B asks for generative AI: evolving Rush Hour heuristic functions with)
+Tj ET
+BT /F2 8.5 Tf
+43.2 555.2955 Td
+
+(both Genetic Programming \(GP\) and Gene Expression Programming \(GEP\), where)
+Tj ET
+BT /F2 8.5 Tf
+43.2 542.736 Td
+(every candidate heuristic is judged by actually running A* with it.) Tj
+ET
+BT /F2 8.5 Tf
+43.2 522.8955 Td
+(All stochastic runs use the fixed seeds 42, 43 and 44 from the final) Tj
+ET
+BT /F2 8.5 Tf
+43.2 512.0955 Td
+(experiment plan, so every number below is reproducible.) Tj ET
+BT /F1 12.5 Tf
+43.2 481.375 Td
+(2. Implementation Overview) Tj ET
+BT /F1 10.5 Tf
+43.2 450.5955 Td
+(2.1 Project structure) Tj ET
+BT /F2 8.5 Tf
+43.2 419.1835 Td
+
+(The code is a plain Python package: `src/common/` \(timing\), `src/ackley/`)
+Tj ET
+BT /F2 8.5 Tf
+43.2 408.3835 Td
+(\(function + the six adaptations\), `src/cvrp/` \(model, parser, cost,)
+Tj ET
+BT /F2 8.5 Tf
+43.2 397.5835 Td
+(validation, baseline\) with `src/cvrp/solvers/` \(the six algorithms\),)
+Tj ET
+BT /F2 8.5 Tf
+43.2 386.7835 Td
+
+(`src/rushhour/` \(board, A*, safe evaluator, GP/GEP comparison\), `src/gp/`)
+Tj ET
+BT /F2 8.5 Tf
+43.2 375.9835 Td
+
+(and `src/gep/` \(separate frameworks\), and `src/experiments/` \(runners,)
+Tj ET
+BT /F2 8.5 Tf
+43.2 365.1835 Td
+(summaries, report assets\). `scripts/` holds the CLI entry points and) Tj
+ET
+BT /F2 8.5 Tf
+43.2 354.3835 Td
+(`tests/` the pytest suite \(268 tests at the time of the final run\).) Tj
+ET
+BT /F1 10.5 Tf
+43.2 335.811 Td
+(2.2 Reproducibility and command-line interface) Tj ET
+BT /F2 8.5 Tf
+43.2 309.0555 Td
+(Every run takes its inputs from CLI arguments — instance paths, seeds,)
+Tj ET
+BT /F2 8.5 Tf
+43.2 298.2555 Td
+
+(budgets and timeouts are never hardcoded. Each experiment row is written to)
+Tj ET
+BT /F2 8.5 Tf
+43.2 287.4555 Td
+
+(CSV with its seed, budget, timeout, costs, feasibility, errors and timing.)
+Tj ET
+BT /F2 8.5 Tf
+43.2 272.3035 Td
+(The final settings live in `configs/final_experiment_plan.json` and the)
+Tj ET
+BT /F2 8.5 Tf
+43.2 261.5035 Td
+
+(runner `scripts/run_final_experiments.py` is resumable \(finished raw CSVs)
+Tj ET
+BT /F2 8.5 Tf
+43.2 255.0555 Td
+(are skipped on a rerun\).) Tj ET
+BT /F1 10.5 Tf
+43.2 232.131 Td
+(2.3 Validation and safety checks) Tj ET
+BT /F2 8.5 Tf
+43.2 205.3755 Td
+(Every CVRP solution is validated: routes start and end at the depot, no)
+Tj ET
+BT /F2 8.5 Tf
+43.2 194.5755 Td
+
+(customer is missing or duplicated, capacity is respected, and the number of)
+Tj ET
+BT /F2 8.5 Tf
+43.2 179.4235 Td
+
+(used routes must not exceed the vehicle count. Rows report `feasible` and)
+Tj ET
+BT /F2 8.5 Tf
+43.2 172.9755 Td
+(the exact validation errors — nothing is silently fixed. Rush Hour) Tj ET
+BT /F2 8.5 Tf
+43.2 160.416 Td
+
+(heuristic evaluation runs A* under a node cap, a per-puzzle time cap and a)
+Tj ET
+BT /F2 8.5 Tf
+43.2 151.3755 Td
+(total time budget, and an exception inside a candidate heuristic is) Tj
+ET
+BT /F2 8.5 Tf
+43.2 140.5755 Td
+(recorded as a failed puzzle instead of crashing the run.) Tj ET
+BT /F1 12.5 Tf
+43.2 109.855 Td
+(3. Part A — Ackley Function) Tj ET
+BT /F2 8.5 Tf
+43.2 80.0955 Td
+(The Ackley function for d dimensions:) Tj ET
+BT /F2 8.5 Tf
+43.2 55.784 Td
+(f\(x\) = -a * exp\(-b * sqrt\(\(1/d\) * sum\(x_i^2\)\)\)) Tj ET
+
+
+endstream
+endobj
+12 0 obj
+4736
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /Resources 8 0 R
+/MediaBox [ 0 0 595.44 841.68 ] /Contents 13 0 R /Annots 14 0 R >>
+endobj
+13 0 obj
+<< /Length 16 0 R >>
+stream
+/DeviceRGB CS
+/DeviceRGB cs
+1 j
+1 g 0 j 0 w 1 G 1 g
+0 0 m
+595.44 0 l
+595.44 841.68 l
+0 841.68 l
+h
+
+f
+0 g 1 j 1 w 0 G 0 g
+BT /F2 8.5 Tf
+43.2 791.136 Td
+(       - exp\(\(1/d\) * sum\(cos\(c * x_i\)\)\) + a + e) Tj ET
+BT /F2 8.5 Tf
+43.2 769.536 Td
+(with a = 20, b = 0.2, c = 2*pi, dimension d = 10, bounds) Tj ET
+BT /F2 8.5 Tf
+43.2 760.4955 Td
+(x_i in [-32.768, 32.768], and the known optimum f\(0, ..., 0\) = 0.) Tj
+ET
+BT /F2 8.5 Tf
+43.2 738.8955 Td
+(Final results \(3 seeds per algorithm, budget 500, timeout 60 s\), from)
+Tj ET
+BT /F2 8.5 Tf
+43.2 723.7435 Td
+(`summary/ackley_d10_summary.csv`:) Tj ET
+BT /F2 8.5 Tf
+43.2 706.4955 Td
+
+(| algorithm | runs | best_value | mean_best_value | std_best_value | mean_dist_from_origin |)
+Tj ET
+BT /F2 8.5 Tf
+43.2 695.9335 Td
+(  mean_elapsed \(s\) |) Tj ET
+BT /F2 8.5 Tf
+43.2 685.1335 Td
+(| --- | --- | --- | --- | --- | --- | --- |) Tj ET
+BT /F2 8.5 Tf
+43.2 674.3335 Td
+(| ackley_alns | 3 | 0.000000 | 0.000000 | 0.000000 | 0.000000 | 0.025 |)
+Tj ET
+BT /F2 8.5 Tf
+43.2 663.5335 Td
+
+(| ackley_bnb_lds | 3 | 0.000000 | 0.000000 | 0.000000 | 0.000000 | 0.000 |)
+Tj ET
+BT /F2 8.5 Tf
+43.2 652.4955 Td
+(| ackley_ga_island | 3 | 0.098 | 0.100 | 0.002 | 0.063 | 0.556 |) Tj ET
+BT /F2 8.5 Tf
+43.2 641.9335 Td
+(| ackley_tabu | 3 | 2.636 | 3.018 | 0.359 | 1.466 | 0.120 |) Tj ET
+BT /F2 8.5 Tf
+43.2 631.1335 Td
+(| ackley_aco | 3 | 10.241 | 11.763 | 1.406 | 11.187 | 0.506 |) Tj ET
+BT /F2 8.5 Tf
+43.2 620.3335 Td
+(| random_search | 3 | 17.933 | 18.320 | 0.481 | 30.278 | 0.009 |) Tj ET
+BT /F2 8.5 Tf
+43.2 609.5335 Td
+(| ackley_sa | 3 | 19.907 | 20.041 | 0.118 | 46.706 | 0.007 |) Tj ET
+BT /F2 8.5 Tf
+43.2 587.6955 Td
+
+(Short analysis. ALNS and B&B/LDS reached 0.000000 \(six decimals\) on every)
+Tj ET
+BT /F2 8.5 Tf
+43.2 576.8955 Td
+
+(seed — but both benefit from knowing the optimum is at the origin: the ALNS)
+Tj ET
+BT /F2 8.5 Tf
+43.2 564.115 Td
+("toward zero" repair operator and the B&B/LDS bin ranking by distance to)
+Tj ET
+BT /F2 8.5 Tf
+43.2 555.2955 Td
+
+(zero point straight at it, so this says more about the adaptation than about)
+Tj ET
+BT /F2 8.5 Tf
+43.2 544.4955 Td
+
+(general optimization strength. GA-Island got close \(?0.1\) without such a)
+Tj ET
+BT /F2 8.5 Tf
+43.2 531.715 Td
+
+(hint. Tabu Search reached ?2.6. ACO's coarse bins \(10 per dimension\) limit)
+Tj ET
+BT /F2 8.5 Tf
+43.2 522.8955 Td
+
+(its precision. SA with the untuned parameters \(initial temperature 10, step)
+Tj ET
+BT /F2 8.5 Tf
+43.2 512.0955 Td
+
+(scale 1\) actually ended worse than plain random search — an honest negative)
+Tj ET
+BT /F2 8.5 Tf
+43.2 501.2955 Td
+
+(result: 500 local Gaussian steps from a random corner of a 10-dimensional)
+Tj ET
+BT /F2 8.5 Tf
+43.2 490.4955 Td
+(box are simply not enough without parameter tuning.) Tj ET
+BT /F1 12.5 Tf
+43.2 460.1375 Td
+(4. Part A — CVRP) Tj ET
+BT /F2 8.5 Tf
+43.2 430.0155 Td
+(Official instances and best-known solutions \(BKS\):) Tj ET
+BT /F2 8.5 Tf
+43.2 408.4155 Td
+(| instance | BKS cost |) Tj ET
+BT /F2 8.5 Tf
+43.2 397.8535 Td
+(| --- | --- |) Tj ET
+BT /F2 8.5 Tf
+43.2 387.0535 Td
+(| P-n16-k8 | 450 |) Tj ET
+BT /F2 8.5 Tf
+43.2 376.2535 Td
+(| E-n22-k4 | 375 |) Tj ET
+BT /F2 8.5 Tf
+43.2 365.4535 Td
+(| A-n32-k5 | 784 |) Tj ET
+BT /F2 8.5 Tf
+43.2 354.6535 Td
+(| A-n80-k10 | 1763 |) Tj ET
+BT /F2 8.5 Tf
+43.2 343.8535 Td
+(| X-n101-k25 | 27591 |) Tj ET
+BT /F2 8.5 Tf
+43.2 333.0535 Td
+(| M-n200-k17 | 1275 |) Tj ET
+BT /F2 8.5 Tf
+43.2 311.4535 Td
+(The BKS values are used only to compute the gap percentage) Tj ET
+BT /F2 8.5 Tf
+43.2 300.4155 Td
+(\(100 · \(cost ? BKS\) / BKS\); the algorithms never see them.) Tj ET
+BT /F2 8.5 Tf
+43.2 278.8155 Td
+(Best feasible result per instance \(7 algorithms × 3 seeds = 21 rows per)
+Tj ET
+BT /F2 8.5 Tf
+43.2 266.256 Td
+(instance; after the Stage 9-B2 repair **all 126 rows are feasible**\):)
+Tj ET
+BT /F2 8.5 Tf
+43.2 246.4155 Td
+
+(| instance | BKS | best algorithm | best cost | best gap | feasible runs |)
+Tj ET
+BT /F2 8.5 Tf
+43.2 235.8535 Td
+(| --- | --- | --- | --- | --- | --- |) Tj ET
+BT /F2 8.5 Tf
+43.2 225.0535 Td
+(| P-n16-k8 | 450 | tabu | 451.95 | 0.43% | 21/21 |) Tj ET
+BT /F2 8.5 Tf
+43.2 214.2535 Td
+(| E-n22-k4 | 375 | alns | 375.28 | 0.07% | 21/21 |) Tj ET
+BT /F2 8.5 Tf
+43.2 203.4535 Td
+(| A-n32-k5 | 784 | alns | 787.08 | 0.39% | 21/21 |) Tj ET
+BT /F2 8.5 Tf
+43.2 192.6535 Td
+(| A-n80-k10 | 1763 | alns | 1834.01 | 4.03% | 21/21 |) Tj ET
+BT /F2 8.5 Tf
+43.2 181.8535 Td
+(| X-n101-k25 | 27591 | aco | 34613.14 | 25.45% | 21/21 |) Tj ET
+BT /F2 8.5 Tf
+43.2 171.0535 Td
+(| M-n200-k17 | 1275 | alns | 1351.43 | 5.99% | 21/21 |) Tj ET
+BT /F2 8.5 Tf
+43.2 149.2155 Td
+
+(Per algorithm \(mean gap over all 18 runs each, plus where it was strongest)
+Tj ET
+BT /F2 8.5 Tf
+43.2 138.6535 Td
+(and weakest\):) Tj ET
+BT /F2 8.5 Tf
+43.2 116.8155 Td
+(| algorithm | mean gap \(all runs\) | best instance | weakest instance |)
+Tj ET
+BT /F2 8.5 Tf
+43.2 106.2535 Td
+(| --- | --- | --- | --- |) Tj ET
+BT /F2 8.5 Tf
+43.2 95.4535 Td
+(| alns | 7.18% | E-n22-k4 \(0.07%\) | X-n101-k25 \(27.08%\) |) Tj ET
+BT /F2 8.5 Tf
+43.2 84.6535 Td
+(| aco | 7.74% | P-n16-k8 \(0.43%\) | X-n101-k25 \(25.45%\) |) Tj ET
+BT /F2 8.5 Tf
+43.2 73.6155 Td
+(| ga_island | 8.00% | P-n16-k8 \(0.43%\) | X-n101-k25 \(25.74%\) |) Tj ET
+BT /F2 8.5 Tf
+43.2 63.0535 Td
+(| tabu | 8.12% | P-n16-k8 \(0.43%\) | X-n101-k25 \(26.82%\) |) Tj ET
+BT /F2 8.5 Tf
+43.2 52.2535 Td
+(| sa | 8.63% | P-n16-k8 \(1.55%\) | X-n101-k25 \(26.95%\) |) Tj ET
+
+
+endstream
+endobj
+16 0 obj
+5381
+endobj
+19 0 obj
+<< /Type /Page /Parent 2 0 R /Resources 8 0 R
+/MediaBox [ 0 0 595.44 841.68 ] /Contents 17 0 R /Annots 18 0 R >>
+endobj
+17 0 obj
+<< /Length 20 0 R >>
+stream
+/DeviceRGB CS
+/DeviceRGB cs
+1 j
+1 g 0 j 0 w 1 G 1 g
+0 0 m
+595.44 0 l
+595.44 841.68 l
+0 841.68 l
+h
+
+f
+0 g 1 j 1 w 0 G 0 g
+BT /F2 8.5 Tf
+43.2 792.8955 Td
+(| baseline | 8.70% | P-n16-k8 \(2.65%\) | X-n101-k25 \(27.08%\) |) Tj ET
+BT /F2 8.5 Tf
+43.2 782.3335 Td
+(| bnb_lds | 8.70% | P-n16-k8 \(2.65%\) | X-n101-k25 \(27.08%\) |) Tj ET
+BT /F2 8.5 Tf
+43.2 760.4955 Td
+
+(Honest note on X-n101-k25: its total demand is 5147 while the total fleet)
+Tj ET
+BT /F2 8.5 Tf
+43.2 749.6955 Td
+(capacity is 25 × 206 = 5150 — only 3 units of slack over 25 routes, so)
+Tj ET
+BT /F2 8.5 Tf
+43.2 738.8955 Td
+
+(almost every route must be loaded completely full. Clarke-Wright needed 28)
+Tj ET
+BT /F2 8.5 Tf
+43.2 728.0955 Td
+
+(routes there, and a subset-sum packing repair \(Section 5\) was required just)
+Tj ET
+BT /F2 8.5 Tf
+43.2 717.2955 Td
+
+(to reach feasibility. That packing ignores geometry, and with nearly zero)
+Tj ET
+BT /F2 8.5 Tf
+43.2 706.4955 Td
+(capacity slack the usual local moves \(relocate, cross-route swap\) are)
+Tj ET
+BT /F2 8.5 Tf
+43.2 695.6955 Td
+(almost always capacity-infeasible, so the metaheuristics could barely) Tj
+ET
+BT /F2 8.5 Tf
+43.2 684.8955 Td
+(improve the start. The 25.45% gap is real and reported as such.) Tj ET
+BT /F1 12.5 Tf
+43.2 654.175 Td
+(5. Multi-stage CVRP Heuristic) Tj ET
+BT /F2 8.5 Tf
+43.2 624.4155 Td
+(The baseline heuristic runs in five stages:) Tj ET
+BT /F2 8.5 Tf
+43.2 601.056 Td
+(1. **Construction** with Clarke-Wright savings \(merge route ends by) Tj
+ET
+BT /F2 8.5 Tf
+43.2 592.0155 Td
+(   descending saving under the capacity limit\).) Tj ET
+BT /F2 8.5 Tf
+43.2 579.456 Td
+
+(2. **2-opt** inside each route \(reverse inner segments while improving\).)
+Tj ET
+BT /F2 8.5 Tf
+43.2 568.656 Td
+
+(3. **Relocate** between routes \(move single customers while improving\).)
+Tj ET
+BT /F2 8.5 Tf
+43.2 557.856 Td
+
+(4. **Vehicle-count repair**: first empty surplus routes and reinsert their)
+Tj ET
+BT /F2 8.5 Tf
+43.2 548.8155 Td
+
+(   customers at cheapest feasible positions; if that fails, deterministic)
+Tj ET
+BT /F2 8.5 Tf
+43.2 538.0155 Td
+
+(   rebuilds \(cheapest insertion, best-fit packing, sweep by polar angle\);)
+Tj ET
+BT /F2 8.5 Tf
+43.2 527.2155 Td
+
+(   as a last resort a subset-sum packing that fills vehicles one at a time)
+Tj ET
+BT /F2 8.5 Tf
+43.2 516.4155 Td
+(   as full as possible over the integer demands — this is what makes) Tj
+ET
+BT /F2 8.5 Tf
+43.2 505.6155 Td
+(   X-n101-k25 feasible.) Tj ET
+BT /F2 8.5 Tf
+43.2 493.056 Td
+(5. **Final validation** — a failed repair is returned as feasible=False)
+Tj ET
+BT /F2 8.5 Tf
+43.2 484.0155 Td
+(   with errors, never hidden.) Tj ET
+BT /F2 8.5 Tf
+43.2 462.4155 Td
+
+(Complexity: everything here is heuristic, not exact. One 2-opt pass over a)
+Tj ET
+BT /F2 8.5 Tf
+43.2 451.6155 Td
+
+(route of length L costs O\(L²\) route evaluations and passes repeat until no)
+Tj ET
+BT /F2 8.5 Tf
+43.2 440.8155 Td
+
+(improvement. The relocate pass scans all customer/position pairs, roughly)
+Tj ET
+BT /F2 8.5 Tf
+43.2 430.0155 Td
+(O\(n²\) per pass. The repair adds packing work \(the subset-sum table is)
+Tj ET
+BT /F2 8.5 Tf
+43.2 419.2155 Td
+
+(O\(n · capacity\) per vehicle\) but guarantees the route count fits the fleet,)
+Tj ET
+BT /F2 8.5 Tf
+43.2 408.4155 Td
+(which turned out to be essential on two of the six official instances.)
+Tj ET
+BT /F1 12.5 Tf
+43.2 377.695 Td
+(6. CVRP Algorithms) Tj ET
+BT /F2 8.5 Tf
+43.2 347.9355 Td
+(All six start from the multi-stage baseline solution, share one random)
+Tj ET
+BT /F2 8.5 Tf
+43.2 337.1355 Td
+(relocate/swap/2-opt neighborhood where applicable, and were run with the)
+Tj ET
+BT /F2 8.5 Tf
+43.2 326.3355 Td
+(same per-instance budget and timeout for a fair comparison.) Tj ET
+BT /F1 10.5 Tf
+43.2 303.411 Td
+(6.1 Simulated Annealing) Tj ET
+BT /F2 8.5 Tf
+43.2 276.6555 Td
+(Full solutions as states; one random neighbor per iteration; accept) Tj
+ET
+BT /F2 8.5 Tf
+43.2 265.8555 Td
+
+(improvements always and worse candidates with probability exp\(-delta/T\),)
+Tj ET
+BT /F2 8.5 Tf
+43.2 255.0555 Td
+
+(T multiplied by 0.995 per iteration. SA improved the small instances \(best)
+Tj ET
+BT /F2 8.5 Tf
+43.2 244.2555 Td
+
+(P-n16-k8 gap 1.55%\) but with this untuned schedule it mostly stayed near)
+Tj ET
+BT /F2 8.5 Tf
+43.2 233.4555 Td
+(the baseline on the larger ones \(mean gap 8.63%\).) Tj ET
+BT /F1 10.5 Tf
+43.2 210.8355 Td
+(6.2 Tabu Search) Tj ET
+BT /F2 8.5 Tf
+43.2 183.7755 Td
+
+(Samples 40 candidates per iteration from the shared neighborhood, forbids)
+Tj ET
+BT /F2 8.5 Tf
+43.2 172.9755 Td
+
+(recently visited solutions via a customer-sequence signature \(FIFO tenure)
+Tj ET
+BT /F2 8.5 Tf
+43.2 162.1755 Td
+(30\), with aspiration on a new global best. Tied for the best P-n16-k8)
+Tj ET
+BT /F2 8.5 Tf
+43.2 151.3755 Td
+(result \(0.43%\) and was solid on the small instances; mean gap 8.12%.)
+Tj ET
+BT /F1 10.5 Tf
+43.2 128.451 Td
+(6.3 Ant Colony Optimization) Tj ET
+BT /F2 8.5 Tf
+43.2 101.6955 Td
+(Ants build routes customer by customer with probability proportional to)
+Tj ET
+BT /F2 8.5 Tf
+43.2 88.184 Td
+
+(pheromone^? · \(1/distance\)^? under the capacity limit, light 2-opt per ant,)
+Tj ET
+BT /F2 8.5 Tf
+43.2 80.0955 Td
+(evaporation plus deposits on the iteration and global best. ACO produced)
+Tj ET
+BT /F2 8.5 Tf
+43.2 69.2955 Td
+(the best feasible X-n101-k25 result \(25.45%\) — its constructive nature)
+Tj ET
+BT /F2 8.5 Tf
+43.2 58.4955 Td
+
+(sidesteps the frozen-local-moves problem there — at the price of the highest)
+Tj ET
+
+
+endstream
+endobj
+20 0 obj
+5417
+endobj
+23 0 obj
+<< /Type /Page /Parent 2 0 R /Resources 8 0 R
+/MediaBox [ 0 0 595.44 841.68 ] /Contents 21 0 R /Annots 22 0 R >>
+endobj
+21 0 obj
+<< /Length 24 0 R >>
+stream
+/DeviceRGB CS
+/DeviceRGB cs
+1 j
+1 g 0 j 0 w 1 G 1 g
+0 0 m
+595.44 0 l
+595.44 841.68 l
+0 841.68 l
+h
+
+f
+0 g 1 j 1 w 0 G 0 g
+BT /F2 8.5 Tf
+43.2 792.8955 Td
+(runtime \(mean 32.8 s per run\).) Tj ET
+BT /F1 10.5 Tf
+43.2 770.2755 Td
+(6.4 GA Island Model) Tj ET
+BT /F2 8.5 Tf
+43.2 743.2155 Td
+(Giant-tour chromosomes \(customer permutations\) split into routes by a)
+Tj ET
+BT /F2 8.5 Tf
+43.2 732.4155 Td
+(capacity-aware scan; OX crossover, swap/inversion mutation, tournament)
+Tj ET
+BT /F2 8.5 Tf
+43.2 721.6155 Td
+
+(selection, elitism 1; two islands with ring migration every 20 generations.)
+Tj ET
+BT /F2 8.5 Tf
+43.2 710.8155 Td
+(Solid mid-field \(mean gap 8.00%\), best on P-n16-k8 \(0.43%\).) Tj ET
+BT /F1 10.5 Tf
+43.2 688.1955 Td
+(6.5 ALNS) Tj ET
+BT /F2 8.5 Tf
+43.2 661.1355 Td
+
+(Destroy operators \(random and worst removal\) and repair operators \(greedy)
+Tj ET
+BT /F2 8.5 Tf
+43.2 650.3355 Td
+
+(and regret-2 insertion\) chosen by adaptive weights, with simulated-annealing)
+Tj ET
+BT /F2 8.5 Tf
+43.2 639.5355 Td
+(acceptance. ALNS was the strongest method overall in these runs: best) Tj
+ET
+BT /F2 8.5 Tf
+43.2 628.7355 Td
+
+(feasible result on four of six instances \(E-n22-k4 0.07%, A-n32-k5 0.39%,)
+Tj ET
+BT /F2 8.5 Tf
+43.2 618.1735 Td
+
+(A-n80-k10 4.03%, M-n200-k17 5.99%\) and the lowest mean gap \(7.18%\) at a)
+Tj ET
+BT /F2 8.5 Tf
+43.2 607.1355 Td
+(moderate mean runtime of 5.2 s.) Tj ET
+BT /F1 10.5 Tf
+43.2 584.5155 Td
+(6.6 Branch-and-Bound / LDS) Tj ET
+BT /F2 8.5 Tf
+43.2 557.4555 Td
+
+(A time-limited search over customer insertion decisions \(hardest customers)
+Tj ET
+BT /F2 8.5 Tf
+43.2 546.6555 Td
+
+(first\), where taking the k-th cheapest insertion costs k discrepancy, with)
+Tj ET
+BT /F2 8.5 Tf
+43.2 535.8555 Td
+(a partial-cost bound against the incumbent. It is exact-inspired, not a)
+Tj ET
+BT /F2 8.5 Tf
+43.2 525.0555 Td
+(full exact solver for these sizes: within the node/discrepancy limits it)
+Tj ET
+BT /F2 8.5 Tf
+43.2 514.2555 Td
+(never beat the baseline incumbent on any official instance, so its rows)
+Tj ET
+BT /F2 8.5 Tf
+43.2 503.4555 Td
+(match the baseline \(mean gap 8.70%\). It proved useful mainly as a) Tj
+ET
+BT /F2 8.5 Tf
+43.2 492.8935 Td
+(correctness reference.) Tj ET
+BT /F1 12.5 Tf
+43.2 461.935 Td
+(7. Ackley Adaptations) Tj ET
+BT /F2 8.5 Tf
+43.2 432.1755 Td
+
+(SA and Tabu Search are natural continuous methods here \(Gaussian steps; a)
+Tj ET
+BT /F2 8.5 Tf
+43.2 421.3755 Td
+(tabu list of rounded points\). GA-Island and ALNS operate directly on) Tj
+ET
+BT /F2 8.5 Tf
+43.2 410.5755 Td
+
+(continuous vectors \(blend crossover and Gaussian mutation; dimension-wise)
+Tj ET
+BT /F2 8.5 Tf
+43.2 399.7755 Td
+
+(destroy and repair\). ACO and B&B/LDS are honest discretizations \(pheromone)
+Tj ET
+BT /F2 8.5 Tf
+43.2 388.9755 Td
+
+(over bins per dimension; limited-discrepancy search over bin choices\) — the)
+Tj ET
+BT /F2 8.5 Tf
+43.2 378.1755 Td
+
+(canonical versions of these methods are combinatorial, and the report does)
+Tj ET
+BT /F2 8.5 Tf
+43.2 367.3755 Td
+
+(not claim otherwise. Random search is only a sanity baseline. The results)
+Tj ET
+BT /F2 8.5 Tf
+43.2 356.5755 Td
+(in Section 3 reflect exactly this: the methods whose adaptation points)
+Tj ET
+BT /F2 8.5 Tf
+43.2 343.795 Td
+(toward the origin \(ALNS's toward-zero repair, B&B/LDS's zero-first bin)
+Tj ET
+BT /F2 8.5 Tf
+43.2 334.9755 Td
+
+(order\) reached it, the general-purpose ones \(GA-Island, Tabu\) got close,)
+Tj ET
+BT /F2 8.5 Tf
+43.2 324.4135 Td
+(and untuned SA performed worst.) Tj ET
+BT /F1 12.5 Tf
+43.2 293.455 Td
+(8. Part B — Rush Hour with GP and GEP) Tj ET
+BT /F2 8.5 Tf
+43.2 261.936 Td
+(A* solves 6×6 Rush Hour boards with g = number of moves and a pluggable)
+Tj ET
+BT /F2 8.5 Tf
+43.2 252.8955 Td
+
+(heuristic h. GP and GEP evolve h as expressions over three board features —)
+Tj ET
+BT /F2 8.5 Tf
+43.2 242.0955 Td
+(distance of the red car to the exit, number of blocking cars, number of)
+Tj ET
+BT /F2 8.5 Tf
+43.2 231.2955 Td
+(free exit cells — plus small constants, with protected operators) Tj ET
+BT /F2 8.5 Tf
+43.2 218.736 Td
+(\(+, -, *, /, min, max, abs, neg, log\). Fitness strongly rewards solved)
+Tj ET
+BT /F2 8.5 Tf
+43.2 209.6955 Td
+
+(puzzles \(10000 each\) and penalizes expanded nodes, solution cost, timeouts)
+Tj ET
+BT /F2 8.5 Tf
+43.2 198.8955 Td
+(and node-cap hits. Every evaluation runs under the safety caps from) Tj
+ET
+BT /F2 8.5 Tf
+43.2 188.0955 Td
+(Section 2.3.) Tj ET
+BT /F2 8.5 Tf
+43.2 166.4955 Td
+(GP uses expression trees with subtree crossover and mutation. GEP is a)
+Tj ET
+BT /F2 8.5 Tf
+43.2 155.6955 Td
+
+(separate framework: a linear genome with a head \(functions or terminals\))
+Tj ET
+BT /F2 8.5 Tf
+43.2 144.8955 Td
+
+(and a tail \(terminals only\), decoded as a Karva K-expression; its operators)
+Tj ET
+BT /F2 8.5 Tf
+43.2 134.0955 Td
+(are point mutation and one-/two-point crossover on the flat gene string.)
+Tj ET
+BT /F2 8.5 Tf
+43.2 112.4955 Td
+
+(Final comparison \(train and eval sets of 4 puzzles each, 20 generations,)
+Tj ET
+BT /F2 8.5 Tf
+43.2 97.3435 Td
+(population 30, seeds 42–44\), from `raw/gp_gep_comparison_runs.csv`:) Tj
+ET
+BT /F2 8.5 Tf
+43.2 80.0955 Td
+
+(| algorithm | seed | eval fitness | solved | expanded | cost | best expression |)
+Tj ET
+BT /F2 8.5 Tf
+43.2 69.5335 Td
+(| --- | --- | --- | --- | --- | --- | --- |) Tj ET
+BT /F2 8.5 Tf
+43.2 56.736 Td
+
+(| gp | 42 | 39956 | 4/4 | 4 | 4 | min\(\(min\(blocking, blocking\) * \(distance - 0\)\), \(\(distance *)
+Tj ET
+
+
+endstream
+endobj
+24 0 obj
+5385
+endobj
+27 0 obj
+<< /Type /Page /Parent 2 0 R /Resources 8 0 R
+/MediaBox [ 0 0 595.44 841.68 ] /Contents 25 0 R /Annots 26 0 R >>
+endobj
+25 0 obj
+<< /Length 28 0 R >>
+stream
+/DeviceRGB CS
+/DeviceRGB cs
+1 j
+1 g 0 j 0 w 1 G 1 g
+0 0 m
+595.44 0 l
+595.44 841.68 l
+0 841.68 l
+h
+
+f
+0 g 1 j 1 w 0 G 0 g
+BT /F2 8.5 Tf
+43.2 792.8955 Td
+(  blocking\) / \(blocking / distance\)\)\) |) Tj ET
+BT /F2 8.5 Tf
+43.2 782.0955 Td
+
+(| gp | 43 | 39956 | 4/4 | 4 | 4 | \(blocking - min\(\(2 / neg\(\(1 + free\)\)\), blocking\)\) |)
+Tj ET
+BT /F2 8.5 Tf
+43.2 769.536 Td
+
+(| gp | 44 | 39956 | 4/4 | 4 | 4 | max\(\(log\(distance\) / neg\(1\)\), max\(min\(5, blocking\), \(blocking *)
+Tj ET
+BT /F2 8.5 Tf
+43.2 760.4955 Td
+(  distance\)\)\) |) Tj ET
+BT /F2 8.5 Tf
+43.2 747.936 Td
+(| gep | 42 | 39956 | 4/4 | 4 | 4 | \(5 * blocking\) |) Tj ET
+BT /F2 8.5 Tf
+43.2 737.136 Td
+
+(| gep | 43 | 39956 | 4/4 | 4 | 4 | \(\(\(\(1 + distance\) * blocking\) + 0.5\) + 1\) |)
+Tj ET
+BT /F2 8.5 Tf
+43.2 726.336 Td
+
+(| gep | 44 | 39956 | 4/4 | 4 | 4 | \(\(\(blocking * 1\) / \(blocking - 0.5\)\) + \(abs\(2\) - free\)\) |)
+Tj ET
+BT /F2 8.5 Tf
+43.2 706.4955 Td
+
+(Summary. Every run \(both methods, all seeds\) solved 4/4 evaluation puzzles)
+Tj ET
+BT /F2 8.5 Tf
+43.2 695.6955 Td
+
+(with only 4 expanded nodes total, giving the identical best fitness 39956 —)
+Tj ET
+BT /F2 8.5 Tf
+43.2 684.8955 Td
+(the evaluation set is too easy to separate the methods on quality.) Tj ET
+BT /F2 8.5 Tf
+43.2 674.0955 Td
+
+(Expression diversity is 1.00 for both \(all best expressions differ across)
+Tj ET
+BT /F2 8.5 Tf
+43.2 661.315 Td
+
+(seeds\), and GEP's genome diversity is also 1.00. Evolution time slightly)
+Tj ET
+BT /F2 8.5 Tf
+43.2 650.515 Td
+(favored GEP \(?0.7–0.9 s per run vs ?1.1–1.4 s for GP\), and GEP's best)
+Tj ET
+BT /F2 8.5 Tf
+43.2 637.3435 Td
+
+(expressions are visibly shorter \(e.g. `\(5 * blocking\)`\). With only 4 tiny)
+Tj ET
+BT /F2 8.5 Tf
+43.2 630.8955 Td
+(puzzles these are observations, not general conclusions.) Tj ET
+BT /F1 12.5 Tf
+43.2 600.5375 Td
+(9. Results) Tj ET
+BT /F2 8.5 Tf
+43.2 570.4155 Td
+
+(The main tables are in Sections 3 \(Ackley\), 4 \(CVRP\) and 8 \(GP/GEP\). The)
+Tj ET
+BT /F2 8.5 Tf
+43.2 555.2635 Td
+(raw per-run rows live under `results/final_experiments/raw/` \(126 CVRP)
+Tj ET
+BT /F2 8.5 Tf
+43.2 549.0535 Td
+(rows, 21 Ackley rows, 6 GP/GEP rows\), the aggregated tables under) Tj ET
+BT /F2 8.5 Tf
+43.2 533.6635 Td
+
+(`results/final_experiments/summary/`, and the generated markdown tables and)
+Tj ET
+BT /F2 8.5 Tf
+43.2 527.2155 Td
+
+(PNG charts \(best cost, gap, runtime, Ackley values, GP/GEP fitness\) under)
+Tj ET
+BT /F2 8.5 Tf
+43.2 512.0635 Td
+(`results/final_experiments/report_assets/`. The execution manifest) Tj ET
+BT /F2 8.5 Tf
+43.2 501.2635 Td
+
+(\(`final_execution_manifest.json`\) records what ran, with which budgets, and)
+Tj ET
+BT /F2 8.5 Tf
+43.2 494.8155 Td
+(how long it took.) Tj ET
+BT /F1 12.5 Tf
+43.2 464.095 Td
+(10. Analysis and Discussion) Tj ET
+BT /F2 8.5 Tf
+43.2 432.576 Td
+
+(- **CVRP pattern.** Gaps grow with instance size: under 0.5% on the three)
+Tj ET
+BT /F2 8.5 Tf
+43.2 423.5355 Td
+(  small instances, ~4–6% on A-n80-k10 and M-n200-k17. ALNS was the most)
+Tj ET
+BT /F2 8.5 Tf
+43.2 412.7355 Td
+(  consistent method; ACO was the most expensive but handled the tight X)
+Tj ET
+BT /F2 8.5 Tf
+43.2 401.9355 Td
+(  instance best.) Tj ET
+BT /F2 8.5 Tf
+43.2 389.376 Td
+(- **X-n101-k25.** With 3 units of total capacity slack, feasibility is a)
+Tj ET
+BT /F2 8.5 Tf
+43.2 380.3355 Td
+(  bin-packing problem and quality improvement is nearly frozen: any) Tj
+ET
+BT /F2 8.5 Tf
+43.2 369.5355 Td
+(  relocate overfills a route. Repairing to feasibility cost geometry) Tj
+ET
+BT /F2 8.5 Tf
+43.2 358.7355 Td
+(  \(packing ignores coordinates\), leaving a 25.45% gap. Improving this)
+Tj ET
+BT /F2 8.5 Tf
+43.2 347.9355 Td
+
+(  would need capacity-aware compound moves \(e.g. ejection chains\), which)
+Tj ET
+BT /F2 8.5 Tf
+43.2 337.3735 Td
+(  were out of scope.) Tj ET
+BT /F2 8.5 Tf
+43.2 324.576 Td
+
+(- **Ackley.** The warm-up separated the methods clearly, but part of that)
+Tj ET
+BT /F2 8.5 Tf
+43.2 315.5355 Td
+
+(  separation comes from how each was adapted \(Section 7\). Untuned SA losing)
+Tj ET
+BT /F2 8.5 Tf
+43.2 304.7355 Td
+(  to random search is a useful reminder that parameter choices matter as)
+Tj ET
+BT /F2 8.5 Tf
+43.2 293.9355 Td
+(  much as the algorithm name.) Tj ET
+BT /F2 8.5 Tf
+43.2 281.376 Td
+(- **GP vs GEP.** Equal quality on this small benchmark; GEP was somewhat)
+Tj ET
+BT /F2 8.5 Tf
+43.2 272.3355 Td
+
+(  faster and produced more compact expressions; GP trees were larger. Both)
+Tj ET
+BT /F2 8.5 Tf
+43.2 261.5355 Td
+(  frameworks are genuinely different representations, not renames.) Tj ET
+BT /F2 8.5 Tf
+43.2 248.976 Td
+
+(- **Runtime vs quality.** ACO bought its X result with ~33 s mean runtime;)
+Tj ET
+BT /F2 8.5 Tf
+43.2 239.9355 Td
+(  ALNS delivered the best average quality at ~5 s; SA is nearly free but)
+Tj ET
+BT /F2 8.5 Tf
+43.2 229.1355 Td
+(  weakest. B&B/LDS spent its budget without beating the incumbent.) Tj ET
+BT /F2 8.5 Tf
+43.2 216.576 Td
+(- **Limitations.** One fixed budget/timeout profile per instance, three)
+Tj ET
+BT /F2 8.5 Tf
+43.2 207.5355 Td
+
+(  seeds, no tuning, and a small Rush Hour puzzle set — the comparisons hold)
+Tj ET
+BT /F2 8.5 Tf
+43.2 196.7355 Td
+(  for this setup only.) Tj ET
+BT /F1 12.5 Tf
+43.2 166.015 Td
+(11. Complexity and Practical Considerations) Tj ET
+BT /F2 8.5 Tf
+43.2 134.496 Td
+(- **Feasibility checking** is O\(n\) per solution and is run on every) Tj
+ET
+BT /F2 8.5 Tf
+43.2 125.4555 Td
+(  candidate the metaheuristics accept, plus once on every final result —)
+Tj ET
+BT /F2 8.5 Tf
+43.2 114.6555 Td
+
+(  the cost is small compared to neighborhood evaluation and it caught real)
+Tj ET
+BT /F2 8.5 Tf
+43.2 103.8555 Td
+(  bugs \(route-count violations\) that pure cost comparison would hide.)
+Tj ET
+BT /F2 8.5 Tf
+43.2 91.296 Td
+
+(- **Neighborhood costs.** The shared relocate/swap/2-opt neighborhood costs)
+Tj ET
+BT /F2 8.5 Tf
+43.2 80.275 Td
+(  O\(n\) per sampled neighbor \(copy + cost\); Tabu's 40 candidates per)
+Tj ET
+BT /F2 8.5 Tf
+43.2 71.4555 Td
+(  iteration make it ~40× SA per iteration, which matches the observed) Tj
+ET
+BT /F2 8.5 Tf
+43.2 60.6555 Td
+(  runtimes.) Tj ET
+BT /F2 8.5 Tf
+43.2 48.096 Td
+
+(- **Stochastic variance.** Three seeds per configuration; the summary CSVs)
+Tj ET
+
+
+endstream
+endobj
+28 0 obj
+6158
+endobj
+31 0 obj
+<< /Type /Page /Parent 2 0 R /Resources 8 0 R
+/MediaBox [ 0 0 595.44 841.68 ] /Contents 29 0 R /Annots 30 0 R >>
+endobj
+29 0 obj
+<< /Length 32 0 R >>
+stream
+/DeviceRGB CS
+/DeviceRGB cs
+1 j
+1 g 0 j 0 w 1 G 1 g
+0 0 m
+595.44 0 l
+595.44 841.68 l
+0 841.68 l
+h
+
+f
+0 g 1 j 1 w 0 G 0 g
+BT /F2 8.5 Tf
+43.2 792.8955 Td
+
+(  report mean and standard deviation. The seeds are fixed in the plan, so)
+Tj ET
+BT /F2 8.5 Tf
+43.2 782.3335 Td
+(  every row can be regenerated exactly.) Tj ET
+BT /F2 8.5 Tf
+43.2 769.536 Td
+(- **Timeouts and fairness.** All algorithms get the same timeout on the)
+Tj ET
+BT /F2 8.5 Tf
+43.2 760.4955 Td
+(  same instance, so slower-per-iteration methods are not silently given)
+Tj ET
+BT /F2 8.5 Tf
+43.2 749.6955 Td
+(  more work. Budgets differ per algorithm in meaning \(iterations vs) Tj
+ET
+BT /F2 8.5 Tf
+43.2 738.8955 Td
+
+(  generations vs nodes\), which is why the timeout is the binding fairness)
+Tj ET
+BT /F2 8.5 Tf
+43.2 728.0955 Td
+(  control on the large instances.) Tj ET
+BT /F2 8.5 Tf
+43.2 715.536 Td
+
+(- **No optimality claims.** Everything here is heuristic or time-limited;)
+Tj ET
+BT /F2 8.5 Tf
+43.2 706.4955 Td
+(  the gaps against BKS quantify exactly how far the results are from the)
+Tj ET
+BT /F2 8.5 Tf
+43.2 695.6955 Td
+(  best known solutions.) Tj ET
+BT /F1 12.5 Tf
+43.2 665.3375 Td
+(12. Use of AI Tools) Tj ET
+BT /F2 8.5 Tf
+43.2 635.2155 Td
+
+(AI tools were used as coding and debugging assistants during the project.)
+Tj ET
+BT /F2 8.5 Tf
+43.2 624.4155 Td
+
+(The final code and this report were reviewed and understood by the student.)
+Tj ET
+BT /F2 8.5 Tf
+43.2 611.635 Td
+
+(Any generated code was tested and adjusted through the project's test suite)
+Tj ET
+BT /F2 8.5 Tf
+43.2 603.0535 Td
+(and staged workflow.) Tj ET
+BT /F1 12.5 Tf
+43.2 572.095 Td
+(13. Reproducibility) Tj ET
+BT /F2 8.5 Tf
+43.2 537.9835 Td
+(- Python 3.12.3, dependencies via `pip install -r requirements.txt`) Tj
+ET
+BT /F2 8.5 Tf
+43.2 531.5355 Td
+(  \(numpy, matplotlib, pandas, pytest\).) Tj ET
+BT /F2 8.5 Tf
+43.2 516.3835 Td
+(- Place the six official CVRPLIB files under `data/official_cvrp/` and)
+Tj ET
+BT /F2 8.5 Tf
+43.2 505.5835 Td
+(  verify with `python scripts/check_official_cvrp_data.py --strict`.) Tj
+ET
+BT /F2 8.5 Tf
+43.2 494.7835 Td
+
+(- Smoke check: `python scripts/run_smoke_suite.py --output-dir results/smoke_suite`)
+Tj ET
+BT /F2 8.5 Tf
+43.2 488.3355 Td
+(- Print/validate the final plan:) Tj ET
+BT /F2 8.5 Tf
+43.2 473.1835 Td
+
+(  `python scripts/print_final_experiment_plan.py --require-official-data`)
+Tj ET
+BT /F2 8.5 Tf
+43.2 462.3835 Td
+
+(- Full final run \(resumable\): `python scripts/run_final_experiments.py`)
+Tj ET
+BT /F2 8.5 Tf
+43.2 451.5835 Td
+(- Report facts: `python scripts/extract_report_numbers.py`) Tj ET
+BT /F2 8.5 Tf
+43.2 440.7835 Td
+
+(- All generated results stay under `results/final_experiments/` and are not)
+Tj ET
+BT /F2 8.5 Tf
+43.2 434.3355 Td
+(  committed to Git.) Tj ET
+BT /F1 12.5 Tf
+43.2 403.615 Td
+(14. Conclusion) Tj ET
+BT /F2 8.5 Tf
+43.2 373.8555 Td
+(The implementation covers everything the assignment asks for: the six) Tj
+ET
+BT /F2 8.5 Tf
+43.2 363.0555 Td
+
+(required search algorithms on both the Ackley warm-up and the six official)
+Tj ET
+BT /F2 8.5 Tf
+43.2 352.2555 Td
+(CVRP instances, an explicit multi-stage CVRP heuristic with an honest) Tj
+ET
+BT /F2 8.5 Tf
+43.2 341.4555 Td
+
+(feasibility-repair story, and separate GP and GEP frameworks for evolving)
+Tj ET
+BT /F2 8.5 Tf
+43.2 328.896 Td
+
+(Rush Hour heuristics evaluated through A*. After the vehicle-count repair)
+Tj ET
+BT /F2 8.5 Tf
+43.2 319.8555 Td
+(work, all 126 final CVRP rows are feasible; gaps are small on the small)
+Tj ET
+BT /F2 8.5 Tf
+43.2 309.0555 Td
+
+(instances \(0.07–0.43%\), moderate on the large ones \(4–6%\), and large on the)
+Tj ET
+BT /F2 8.5 Tf
+43.2 298.2555 Td
+
+(capacity-tight X-n101-k25 \(25.45%\), which is reported as a real limitation)
+Tj ET
+BT /F2 8.5 Tf
+43.2 287.6935 Td
+
+(rather than smoothed over. On Ackley, the adapted ALNS and B&B/LDS reached)
+Tj ET
+BT /F2 8.5 Tf
+43.2 276.6555 Td
+(the optimum while untuned SA did not beat random search. GP and GEP both)
+Tj ET
+BT /F2 8.5 Tf
+43.2 265.8555 Td
+
+(solved the full Rush Hour evaluation set with identical fitness, with GEP)
+Tj ET
+BT /F2 8.5 Tf
+43.2 255.0555 Td
+(slightly faster and more compact on this small benchmark. The main open)
+Tj ET
+BT /F2 8.5 Tf
+43.2 244.2555 Td
+(improvements are capacity-aware compound moves for tight CVRP instances,)
+Tj ET
+BT /F2 8.5 Tf
+43.2 233.4555 Td
+(parameter tuning for SA, and a harder Rush Hour puzzle set.) Tj ET
+
+
+endstream
+endobj
+32 0 obj
+4371
+endobj
+10 0 obj
+[ ]
+endobj
+14 0 obj
+[ ]
+endobj
+18 0 obj
+[ ]
+endobj
+22 0 obj
+[ ]
+endobj
+26 0 obj
+[ ]
+endobj
+30 0 obj
+[ ]
+endobj
+33 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold
+/Encoding /WinAnsiEncoding >>
+endobj
+34 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier
+/Encoding /WinAnsiEncoding >>
+endobj
+3 0 obj
+<< /F1 33 0 R /F2 34 0 R >>
+endobj
+4 0 obj
+<< >>
+endobj
+5 0 obj
+<< >>
+endobj
+6 0 obj
+<< >>
+endobj
+7 0 obj
+<< >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [ 11 0 R 15 0 R 19 0 R 23 0 R 27 0 R 31 0 R ]
+/Count 6 >>
+endobj
+35 0 obj
+<< /Creator (Matplotlib v3.11.0, https://matplotlib.org)
+/Producer (Matplotlib pdf backend v3.11.0)
+/CreationDate (D:20260704185549+03'00') >>
+endobj
+xref
+0 36
+0000000000 65535 f 
+0000000016 00000 n 
+0000033328 00000 n 
+0000033201 00000 n 
+0000033244 00000 n 
+0000033265 00000 n 
+0000033286 00000 n 
+0000033307 00000 n 
+0000000065 00000 n 
+0000000336 00000 n 
+0000032884 00000 n 
+0000000208 00000 n 
+0000005126 00000 n 
+0000005276 00000 n 
+0000032904 00000 n 
+0000005147 00000 n 
+0000010712 00000 n 
+0000010862 00000 n 
+0000032924 00000 n 
+0000010733 00000 n 
+0000016334 00000 n 
+0000016484 00000 n 
+0000032944 00000 n 
+0000016355 00000 n 
+0000021924 00000 n 
+0000022074 00000 n 
+0000032964 00000 n 
+0000021945 00000 n 
+0000028287 00000 n 
+0000028437 00000 n 
+0000032984 00000 n 
+0000028308 00000 n 
+0000032863 00000 n 
+0000033004 00000 n 
+0000033105 00000 n 
+0000033423 00000 n 
+trailer
+<< /Size 36 /Root 1 0 R /Info 35 0 R >>
+startxref
+33582
+%%EOF

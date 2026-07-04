@@ -11,7 +11,17 @@ Two parts:
 
 ## Status
 
-Stage 9-C — the Markdown report under `report/assignment3_report.md` was filled from the final CSV results. Final PDF/export is a later step; generated results remain under `results/` and are not committed.
+Stage 9-D — final report (Markdown + PDF) under `report/`, submission audit in place.
+
+The final audit can be run with:
+
+```
+python scripts/audit_submission.py --check-results --check-pdf
+```
+
+Generated experiment outputs live under `results/final_experiments/` and are
+not committed automatically. The official `.vrp` files are user-provided
+data and are not committed unless the course explicitly asks for them.
 
 ## Requirements
 
