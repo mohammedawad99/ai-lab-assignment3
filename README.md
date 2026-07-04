@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 1-B — CVRP core and Rush Hour core done. No solvers or GP/GEP yet.
+Stage 2-A — CVRP multi-stage baseline done. No metaheuristic solvers or GP/GEP yet.
 
 ## Requirements
 
@@ -75,6 +75,25 @@ Choose a heuristic (`zero`, `blocking`, `blocking_distance`):
 
 ```
 python scripts/solve_rushhour.py --puzzle examples/rushhour_tiny.txt --heuristic blocking_distance
+```
+
+## Stage 2-A: CVRP baseline
+
+Clarke-Wright savings construction and simple local search were added. The
+multi-stage baseline heuristic is:
+
+construction (Clarke-Wright) -> 2-opt inside routes -> relocate between routes -> validation
+
+Run it on the tiny example:
+
+```
+python scripts/run_cvrp_baseline.py --instance examples/tiny_cvrp.vrp
+```
+
+Optionally write the solution to a file:
+
+```
+python scripts/run_cvrp_baseline.py --instance examples/tiny_cvrp.vrp --output results/tiny_baseline_solution.txt
 ```
 
 ## Usage
