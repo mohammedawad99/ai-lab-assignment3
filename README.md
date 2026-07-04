@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 4-B — GA Island Model foundations done (CVRP + Ackley). No ALNS/B&B or GP/GEP yet.
+Stage 5-A — ALNS foundations done (CVRP + Ackley). No B&B/LDS or GP/GEP yet.
 
 ## Requirements
 
@@ -188,6 +188,27 @@ Ackley:
 
 ```
 python scripts/run_ackley_ga_island.py --generations 100 --population-size 30 --islands 4 --seed 42
+```
+
+## Stage 5-A: ALNS foundations
+
+Adaptive Large Neighborhood Search was added for CVRP: destroy operators
+(random removal, worst removal) and repair operators (greedy insertion,
+regret-2 insertion) are picked by adaptive weights, with simulated-annealing
+acceptance. A small ALNS-style version was also added for Ackley by
+destroying and repairing vector dimensions — a practical warm-up adaptation,
+since ALNS is really meant for combinatorial problems.
+
+CVRP:
+
+```
+python scripts/run_cvrp_alns.py --instance examples/tiny_cvrp.vrp --iterations 100 --seed 42
+```
+
+Ackley:
+
+```
+python scripts/run_ackley_alns.py --iterations 100 --seed 42
 ```
 
 ## Usage
