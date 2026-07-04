@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 9-A — final experiment plan and report skeleton done. Final experiment execution comes next.
+Stage 9-B — final experiment runner done and executed. The report is filled next.
 
 ## Requirements
 
@@ -439,6 +439,20 @@ python scripts/print_final_experiment_plan.py --require-official-data
 
 `report/assignment3_report.md` is only a skeleton — it is filled after the
 final results exist.
+
+## Stage 9-B: Final experiment execution
+
+A resumable final experiment runner executes the plan from
+`configs/final_experiment_plan.json`. It writes raw CSVs, summary CSVs,
+report assets, and an execution manifest under `results/final_experiments/`.
+
+```
+python scripts/run_final_experiments.py
+```
+
+To resume safely after an interruption, run the same command again —
+existing raw CSVs with rows are skipped. Generated results are not
+committed automatically.
 
 ## Usage
 
