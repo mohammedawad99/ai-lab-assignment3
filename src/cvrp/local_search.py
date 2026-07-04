@@ -1,6 +1,9 @@
 """Local improvement moves for CVRP: in-route 2-opt, cross-route relocate,
 and a vehicle-count feasibility repair (Clarke-Wright can produce more routes
-than the instance allows, which showed up on the official P-n16-k8)."""
+than the instance allows, which showed up on the official P-n16-k8 and, more
+severely, on X-n101-k25)."""
+
+import math
 
 from src.cvrp.construction import is_used_route, route_load
 from src.cvrp.cost import route_cost, solution_cost
@@ -243,4 +246,256 @@ def make_solution_vehicle_feasible(instance: CVRPInstance, solution: CVRPSolutio
             finished = finish(rebuilt)
             if finished is not None:
                 return finished
+
+    # last resort: stronger vehicle-limited rebuilds (needed for X-n101-k25,
+    # where the packing is too tight for the simple strategies above)
+    strong = try_vehicle_limited_rebuilds(instance, solution, distance_matrix)
+    if strong is not None:
+        finished = finish(strong)
+        if finished is not None:
+            return finished
     return None
+
+
+# ---------- stronger vehicle-limited rebuilds ----------
+
+def customer_order_from_solution(solution: CVRPSolution) -> list[int]:
+    return [c for route in solution.routes for c in route_customers(route)]
+
+
+def customer_distance_from_depot(instance, customer, distance_matrix) -> float:
+    return distance_matrix[instance.depot_id][customer]
+
+
+def customer_angle_from_depot(instance, customer) -> float:
+    depot_x, depot_y = instance.coordinates[instance.depot_id]
+    x, y = instance.coordinates[customer]
+    return math.atan2(y - depot_y, x - depot_x)
+
+
+def _nearest_neighbor_order(instance, customers, distance_matrix) -> list[int]:
+    """Order a customer group starting from the depot, always going to the
+    nearest unvisited customer (id breaks ties for determinism)."""
+    remaining = list(customers)
+    ordered = []
+    current = instance.depot_id
+    while remaining:
+        nxt = min(remaining, key=lambda c: (distance_matrix[current][c], c))
+        ordered.append(nxt)
+        remaining.remove(nxt)
+        current = nxt
+    return ordered
+
+
+def route_solution_from_customer_groups(instance, groups, distance_matrix):
+    """Turn capacity-feasible customer groups into routes: nearest-neighbor
+    order from the depot, then 2-opt per route."""
+    routes = []
+    for group in groups:
+        if not group:
+            continue
+        ordered = _nearest_neighbor_order(instance, group, distance_matrix)
+        routes.append(improve_route_2opt([0] + ordered + [0], distance_matrix))
+    solution = CVRPSolution(routes=routes)
+    solution.cost = solution_cost(solution, distance_matrix)
+    return solution
+
+
+def build_routes_best_fit_capacity(instance, customer_order):
+    """Best-fit packing into at most vehicle_count groups.
+    Returns customer groups or None if the packing fails."""
+    groups: list[list[int]] = []
+    loads: list[float] = []
+    for customer in customer_order:
+        demand = instance.demands.get(customer, 0.0)
+        if demand > instance.capacity:
+            return None
+        best_index = None
+        best_left = None
+        for i, load in enumerate(loads):
+            left = instance.capacity - load - demand
+            if left >= 0 and (best_left is None or left < best_left):
+                best_index, best_left = i, left
+        if best_index is not None:
+            groups[best_index].append(customer)
+            loads[best_index] += demand
+        elif len(groups) < instance.vehicle_count:
+            groups.append([customer])
+            loads.append(demand)
+        else:
+            return None
+    return groups
+
+
+def build_routes_sweep(instance, customer_order, distance_matrix):
+    """Sweep-style packing: fill routes sequentially in the given (angle
+    sorted) order. Returns a solution or None."""
+    groups: list[list[int]] = [[]]
+    load = 0.0
+    for customer in customer_order:
+        demand = instance.demands.get(customer, 0.0)
+        if demand > instance.capacity:
+            return None
+        if load + demand > instance.capacity:
+            if len(groups) >= instance.vehicle_count:
+                return None
+            groups.append([])
+            load = 0.0
+        groups[-1].append(customer)
+        load += demand
+    return route_solution_from_customer_groups(instance, groups, distance_matrix)
+
+
+def build_routes_subset_sum_packing(instance, customer_order):
+    """Fill vehicles one at a time as full as possible, using a subset-sum
+    table over the integer demands.
+
+    Needed when total demand almost equals total capacity: X-n101-k25 has
+    5147 demand against 25 * 206 = 5150 capacity, so almost every route must
+    be loaded completely full, which greedy packing cannot find.
+    Returns customer groups or None.
+    """
+    capacity = int(instance.capacity)
+    if instance.capacity != capacity:
+        return None  # table needs integer capacity
+    demands = {}
+    for customer in customer_order:
+        demand = instance.demands.get(customer, 0.0)
+        if demand != int(demand) or demand > capacity:
+            return None  # table needs integer demands
+        demands[customer] = int(demand)
+
+    remaining = list(customer_order)
+    total_left = sum(demands[c] for c in remaining)
+    groups = []
+    for bins_left in range(instance.vehicle_count, 0, -1):
+        if not remaining:
+            break
+        # everything not in this bin must still fit into the other bins
+        lower = max(0, total_left - (bins_left - 1) * capacity)
+        if lower > capacity:
+            return None
+        # subset-sum: one representative customer subset per reachable load
+        reachable = {0: []}
+        for customer in remaining:
+            demand = demands[customer]
+            for load, subset in list(reachable.items()):
+                new_load = load + demand
+                if new_load <= capacity and new_load not in reachable:
+                    reachable[new_load] = subset + [customer]
+        best_load = max((load for load in reachable if load >= lower), default=None)
+        if best_load is None:
+            return None
+        chosen = reachable[best_load]
+        groups.append(chosen)
+        chosen_set = set(chosen)
+        remaining = [c for c in remaining if c not in chosen_set]
+        total_left -= best_load
+    if remaining:
+        return None
+    return groups
+
+
+def build_routes_regret_insertion(instance, customer_order, distance_matrix):
+    """Regret-2 insertion under a hard vehicle limit. Returns a solution or
+    None. Slower than the packing strategies, so it is used as a last resort."""
+    d = distance_matrix
+    routes: list[list[int]] = []
+    remaining = list(customer_order)
+    while remaining:
+        best_pick = None  # (key, customer, route_idx, pos)
+        for customer in remaining:
+            demand = instance.demands.get(customer, 0.0)
+            options = []
+            for r_idx, route in enumerate(routes):
+                if route_load(instance, route) + demand > instance.capacity:
+                    continue
+                for pos in range(1, len(route)):
+                    options.append((insertion_delta(route, customer, pos, d),
+                                    r_idx, pos))
+            if demand <= instance.capacity and len(routes) < instance.vehicle_count:
+                options.append((d[0][customer] + d[customer][0], None, None))
+            if not options:
+                return None
+            options.sort(key=lambda item: item[0])
+            regret = options[1][0] - options[0][0] if len(options) > 1 else 1e9
+            # tie-break: larger demand, then farther from depot, then smaller id
+            key = (regret, demand, d[instance.depot_id][customer], -customer)
+            if best_pick is None or key > best_pick[0]:
+                best_pick = (key, customer, options[0][1], options[0][2])
+        _, customer, r_idx, pos = best_pick
+        if r_idx is None:
+            routes.append([0, customer, 0])
+        else:
+            routes[r_idx].insert(pos, customer)
+        remaining.remove(customer)
+    solution = CVRPSolution(routes=routes)
+    solution.cost = solution_cost(solution, d)
+    return solution
+
+
+def try_vehicle_limited_rebuilds(instance, solution, distance_matrix):
+    """Deterministic rebuilds that never exceed the vehicle limit.
+    Returns the cheapest feasible candidate, or None."""
+    d = distance_matrix
+    customers = customer_order_from_solution(solution)
+
+    def demand(c):
+        return instance.demands.get(c, 0.0)
+
+    def dist(c):
+        return customer_distance_from_depot(instance, c, d)
+
+    angle = lambda c: customer_angle_from_depot(instance, c)
+
+    orders = [
+        list(customers),                                      # solution order
+        sorted(customers, key=lambda c: -demand(c)),          # big demand first
+        sorted(customers, key=lambda c: -dist(c)),            # far from depot first
+        sorted(customers, key=lambda c: (-demand(c), -dist(c))),
+        sorted(customers),                                    # by id
+        sorted(customers, key=angle),                         # angle ascending
+        sorted(customers, key=angle, reverse=True),           # angle descending
+    ]
+
+    candidates = []
+
+    # A. best-fit capacity packing (cheap, good at tight packing)
+    for order in orders:
+        groups = build_routes_best_fit_capacity(instance, order)
+        if groups is not None:
+            candidates.append(route_solution_from_customer_groups(instance, groups, d))
+
+    # C. sweep packing: both directions, a handful of rotations
+    by_angle = sorted(customers, key=angle)
+    n = len(by_angle)
+    step = max(1, n // 8)
+    for direction in (by_angle, list(reversed(by_angle))):
+        for start in range(0, n, step):
+            rotated = direction[start:] + direction[:start]
+            swept = build_routes_sweep(instance, rotated, d)
+            if swept is not None:
+                candidates.append(swept)
+
+    # D. subset-sum packing when the packing is too tight for the above
+    # (the group composition depends on the item order, so try a few)
+    if not candidates:
+        for order in (sorted(customers, key=angle),
+                      sorted(customers, key=angle, reverse=True),
+                      sorted(customers, key=lambda c: -demand(c)),
+                      list(customers)):
+            groups = build_routes_subset_sum_packing(instance, order)
+            if groups is not None:
+                candidates.append(route_solution_from_customer_groups(instance, groups, d))
+
+    # B. regret insertion only when everything else failed
+    if not candidates:
+        for order in orders:
+            built = build_routes_regret_insertion(instance, order, d)
+            if built is not None:
+                candidates.append(built)
+
+    feasible = [c for c in candidates if validate_solution(instance, c).feasible]
+    if not feasible:
+        return None
+    return min(feasible, key=lambda c: c.cost)
