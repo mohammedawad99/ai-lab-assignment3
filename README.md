@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 7-B — official CVRP benchmark setup (manifest + BKS table + checker) done. Final experiments come next.
+Stage 8-A — smoke-suite runner and result summaries done. Final experiments on the official instances come next.
 
 ## Requirements
 
@@ -353,6 +353,30 @@ Optional CSV report:
 
 ```
 python scripts/check_official_cvrp_data.py --csv-output results/official_cvrp_data_check.csv
+```
+
+## Stage 8-A: Smoke experiments and summaries
+
+A smoke-suite runner was added to check all implemented CVRP and Ackley
+algorithms end-to-end with small budgets — it is a fast sanity run, not the
+final benchmark. Raw result CSVs and compact summary CSVs (grouped per
+instance/algorithm) are written separately.
+
+```
+python scripts/run_smoke_suite.py --output-dir results/smoke_suite
+```
+
+Summarize a raw results CSV on its own:
+
+```
+python scripts/summarize_experiments.py --part cvrp --input results/smoke_suite/raw/cvrp_results.csv --output results/smoke_suite/summary/cvrp_summary.csv
+```
+
+When official instances are used, the BKS table can be passed to the unified
+runner to fill the gap column:
+
+```
+python scripts/run_experiments.py --part cvrp --instances data/official_cvrp/P-n16-k8.vrp --algorithms sa tabu --seeds 42 --budget 100 --timeout 30 --bks data/cvrp_bks.csv --output results/example_with_bks.csv
 ```
 
 ## Usage

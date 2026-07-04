@@ -1,0 +1,15 @@
+{
+  "official_data_dir": "data/official_cvrp",
+  "bks_path": "data/cvrp_bks.csv",
+  "official_instances": [
+    "P-n16-k8",
+    "E-n22-k4",
+    "A-n32-k5",
+    "A-n80-k10",
+    "X-n101-k25",
+    "M-n200-k17"
+  ],
+  "algorithms": ["sa", "tabu", "aco", "ga_island", "alns", "bnb_lds"],
+  "suggested_seeds": [42, 43, 44],
+  "note": "Template only. Do not treat this as completed benchmark results."
+}

@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.experiments.ackley_experiments import ACKLEY_FIELDNAMES, run_ackley_experiments
 from src.experiments.csv_utils import write_dict_rows
 from src.experiments.cvrp_experiments import CVRP_FIELDNAMES, run_cvrp_experiments
+from src.experiments.official_benchmarks import load_bks_table
 
 # the six required algorithms, shared by both parts
 REQUIRED_SIX = ["sa", "tabu", "aco", "ga_island", "alns", "bnb_lds"]
@@ -75,6 +76,7 @@ def main():
     parser.add_argument("--include-random-search", action="store_true",
                         help="also run the random-search sanity baseline (Ackley)")
     parser.add_argument("--include-unused-vehicles", action="store_true")
+    parser.add_argument("--bks", help="optional BKS CSV to compute gap_percent (CVRP)")
     parser.add_argument("--output", help="CSV path for part=cvrp or part=ackley")
     parser.add_argument("--output-dir", help="directory for part=both")
     args = parser.parse_args()
@@ -92,12 +94,21 @@ def main():
     cvrp_algorithms = (["baseline"] if args.include_baseline else []) + args.algorithms
     ackley_algorithms = (["random_search"] if args.include_random_search else []) + args.algorithms
 
+    # optional BKS table for gap_percent; instances without an entry keep an empty gap
+    bks_by_instance = None
+    if args.bks:
+        try:
+            bks_by_instance = load_bks_table(args.bks)
+        except (OSError, ValueError, KeyError) as exc:
+            fail(f"could not load BKS table '{args.bks}': {exc}")
+
     if args.part == "cvrp":
         output = Path(args.output)
         rows = run_cvrp_experiments(
             args.instances, cvrp_algorithms, args.seeds, budget=args.budget,
             timeout_sec=args.timeout, output_dir=output.parent,
             include_unused_vehicles=args.include_unused_vehicles,
+            bks_by_instance=bks_by_instance,
         )
         write_dict_rows(output, rows, CVRP_FIELDNAMES)
         print(f"cvrp rows written: {len(rows)} -> {output}")
@@ -120,6 +131,7 @@ def main():
             args.instances, cvrp_algorithms, args.seeds, budget=args.budget,
             timeout_sec=args.timeout, output_dir=output_dir,
             include_unused_vehicles=args.include_unused_vehicles,
+            bks_by_instance=bks_by_instance,
         )
         cvrp_csv = output_dir / "cvrp_results.csv"
         write_dict_rows(cvrp_csv, cvrp_rows, CVRP_FIELDNAMES)

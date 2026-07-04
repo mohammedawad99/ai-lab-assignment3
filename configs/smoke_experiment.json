@@ -1,0 +1,9 @@
+{
+  "cvrp_instance": "examples/tiny_cvrp.vrp",
+  "cvrp_algorithms": ["sa", "tabu", "aco", "ga_island", "alns", "bnb_lds"],
+  "ackley_algorithms": ["sa", "tabu", "aco", "ga_island", "alns", "bnb_lds"],
+  "seeds": [42],
+  "budget": 10,
+  "timeout_sec": 5.0,
+  "ackley_dimension": 4
+}
