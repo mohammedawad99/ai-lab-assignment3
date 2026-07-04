@@ -1,0 +1,99 @@
+{
+  "plan_path": "configs/final_experiment_plan.json",
+  "resume": true,
+  "run_cvrp": true,
+  "run_ackley": false,
+  "run_rushhour": false,
+  "cvrp_run_info": [
+    {
+      "instance": "P-n16-k8",
+      "output_csv": "results/final_experiments/raw/cvrp_P-n16-k8.csv",
+      "rows": 21,
+      "skipped_existing": true,
+      "budget": 300,
+      "timeout_sec": 30,
+      "elapsed_time": 0.0
+    },
+    {
+      "instance": "E-n22-k4",
+      "output_csv": "results/final_experiments/raw/cvrp_E-n22-k4.csv",
+      "rows": 21,
+      "skipped_existing": true,
+      "budget": 300,
+      "timeout_sec": 30,
+      "elapsed_time": 0.0
+    },
+    {
+      "instance": "A-n32-k5",
+      "output_csv": "results/final_experiments/raw/cvrp_A-n32-k5.csv",
+      "rows": 21,
+      "skipped_existing": true,
+      "budget": 500,
+      "timeout_sec": 60,
+      "elapsed_time": 0.0
+    },
+    {
+      "instance": "A-n80-k10",
+      "output_csv": "results/final_experiments/raw/cvrp_A-n80-k10.csv",
+      "rows": 21,
+      "skipped_existing": true,
+      "budget": 800,
+      "timeout_sec": 120,
+      "elapsed_time": 0.0
+    },
+    {
+      "instance": "X-n101-k25",
+      "output_csv": "results/final_experiments/raw/cvrp_X-n101-k25.csv",
+      "rows": 21,
+      "skipped_existing": false,
+      "budget": 1000,
+      "timeout_sec": 180,
+      "elapsed_time": 126.82432671700008
+    },
+    {
+      "instance": "M-n200-k17",
+      "output_csv": "results/final_experiments/raw/cvrp_M-n200-k17.csv",
+      "rows": 21,
+      "skipped_existing": true,
+      "budget": 1200,
+      "timeout_sec": 300,
+      "elapsed_time": 0.0
+    }
+  ],
+  "ackley_run_info": {},
+  "rushhour_run_info": {},
+  "aggregation_info": {
+    "cvrp_combined": {
+      "output_path": "results/final_experiments/raw/cvrp_all_instances.csv",
+      "input_count": 6,
+      "missing_count": 0,
+      "missing_paths": [],
+      "row_count": 126
+    },
+    "summaries": [
+      "results/final_experiments/summary/cvrp_all_summary.csv",
+      "results/final_experiments/summary/cvrp_P-n16-k8_summary.csv",
+      "results/final_experiments/summary/cvrp_E-n22-k4_summary.csv",
+      "results/final_experiments/summary/cvrp_A-n32-k5_summary.csv",
+      "results/final_experiments/summary/cvrp_A-n80-k10_summary.csv",
+      "results/final_experiments/summary/cvrp_X-n101-k25_summary.csv",
+      "results/final_experiments/summary/cvrp_M-n200-k17_summary.csv",
+      "results/final_experiments/summary/ackley_d10_summary.csv"
+    ],
+    "missing": []
+  },
+  "asset_paths": [
+    "results/final_experiments/report_assets/cvrp_summary_table.md",
+    "results/final_experiments/report_assets/cvrp_best_cost.png",
+    "results/final_experiments/report_assets/cvrp_gap_percent.png",
+    "results/final_experiments/report_assets/cvrp_runtime.png",
+    "results/final_experiments/report_assets/ackley_summary_table.md",
+    "results/final_experiments/report_assets/ackley_best_value.png",
+    "results/final_experiments/report_assets/ackley_distance.png",
+    "results/final_experiments/report_assets/ackley_runtime.png",
+    "results/final_experiments/report_assets/gp_gep_comparison_table.md",
+    "results/final_experiments/report_assets/gp_gep_eval_fitness.png",
+    "results/final_experiments/report_assets/gp_gep_expanded_nodes.png",
+    "results/final_experiments/report_assets/gp_gep_summary_note.txt"
+  ]
+}

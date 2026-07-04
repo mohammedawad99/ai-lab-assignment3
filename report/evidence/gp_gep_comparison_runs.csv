@@ -1,0 +1,7 @@
+algorithm,seed,generations,population_size,train_fitness,train_solved_count,train_puzzle_count,train_total_expanded_nodes,train_total_cost,eval_fitness,eval_solved_count,eval_puzzle_count,eval_total_expanded_nodes,eval_total_cost,elapsed_time,cpu_time,best_expression,best_genome
+gp_rushhour,42,20,30,39956.0,4,4,4,4,39956.0,4,4,4,4,1.348863,1.327169,"min((min(blocking, blocking) * (distance - 0)), ((distance * blocking) / (blocking / distance)))",
+gp_rushhour,43,20,30,39956.0,4,4,4,4,39956.0,4,4,4,4,1.124961,1.106868,"(blocking - min((2 / neg((1 + free))), blocking))",
+gp_rushhour,44,20,30,39956.0,4,4,4,4,39956.0,4,4,4,4,1.151028,1.132559,"max((log(distance) / neg(1)), max(min(5, blocking), (blocking * distance)))",
+gep_rushhour,42,20,30,39956.0,4,4,4,4,39956.0,4,4,4,4,0.672552,0.661753,(5 * blocking),* 5.0 blocking min blocking log 0.5 0.0 5.0 1.0 distance 2.0 distance
+gep_rushhour,43,20,30,39956.0,4,4,4,4,39956.0,4,4,4,4,0.719127,0.707577,((((1 + distance) * blocking) + 0.5) + 1),+ + 1.0 * 0.5 + blocking 1.0 distance 2.0 2.0 0.5 blocking
+gep_rushhour,44,20,30,39956.0,4,4,4,4,39956.0,4,4,4,4,0.925801,0.910914,(((blocking * 1) / (blocking - 0.5)) + (abs(2) - free)),+ / - * - abs free blocking 1.0 blocking 0.5 2.0 distance

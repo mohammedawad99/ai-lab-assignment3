@@ -21,6 +21,11 @@ REQUIRED_FILES = [
     "report/assignment3_report.md",
     "configs/final_experiment_plan.json",
     "data/cvrp_bks.csv",
+    # small evidence snapshots cited by the report
+    "report/evidence/cvrp_all_summary.csv",
+    "report/evidence/ackley_d10_summary.csv",
+    "report/evidence/gp_gep_comparison_runs.csv",
+    "report/evidence/final_execution_manifest.json",
 ]
 
 RESULT_FILES = [

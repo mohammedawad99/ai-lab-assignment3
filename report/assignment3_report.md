@@ -169,6 +169,69 @@ values are averages over all seven algorithms, so the cheap methods (SA,
 baseline) pull the mean down; ACO alone accounts for most of the time on
 the two largest instances.
 
+### 4.1 Route visualizations
+
+Route plots are included to check feasibility visually on top of the
+validator checks: every tour must start and end at the black depot square,
+and the route count in the title must not exceed the fleet size.
+
+![Best routes on P-n16-k8](figures/cvrp_route_P-n16-k8.png)
+
+P-n16-k8 (tabu, seed 42, cost 451.95): eight short routes, each serving
+only one or two customers — with capacity 35 and demands up to 30-plus,
+most vehicles can take very little, which is why the instance needs all
+eight vehicles despite having only 15 customers.
+
+![Best routes on A-n80-k10](figures/cvrp_route_A-n80-k10.png)
+
+A-n80-k10 (alns, seed 43, cost 1834.01): ten routes fanning out of the
+depot in clean geographic sectors. Some crossings between neighboring
+routes remain — visual evidence of the remaining 4% gap that in-route 2-opt
+alone cannot remove.
+
+![Best routes on X-n101-k25](figures/cvrp_route_X-n101-k25.png)
+
+X-n101-k25 (aco, seed 42, cost 34613.14): the plot is dense because the
+instance is large (100 customers) and extremely tight (25 nearly-full
+routes), so it is harder to inspect visually — long criss-crossing legs are
+exactly what a load-driven packing looks like when geometry has to take
+second place to capacity.
+
+### 4.2 Convergence behavior
+
+![Convergence on P-n16-k8](figures/convergence_P-n16-k8.png)
+
+On the small instance every method starts from the repaired baseline
+(461.94) and improves quickly: ACO reaches 451.95 within its first ten
+iterations, Tabu follows by iteration 50, ALNS settles slightly higher at
+456.95 for this seed. After that the curves are flat — the instance is
+essentially solved as far as these operators can take it.
+
+![Convergence on A-n80-k10](figures/convergence_A-n80-k10.png)
+
+On A-n80-k10 the honest picture is that most of the quality comes from the
+multi-stage baseline itself (1850.30): ALNS shaves a few units early and
+then plateaus, while GA-Island and ACO never beat the baseline for this
+seed. The strong start compresses the visible improvement — the y-axis
+spans only a few cost units.
+
+![Convergence on X-n101-k25](figures/convergence_X-n101-k25.png)
+
+On X-n101-k25 the curves confirm the packing story: after the subset-sum
+repair produces a feasible start, ALNS cannot improve it at all (its
+capacity-feasible repairs keep failing in the 3-unit-slack packing), while
+ACO's constructive ants find a slightly better packing (34613 vs 35062).
+Neither gets anywhere near the BKS — improvement is limited after feasible
+packing, as discussed above.
+
+![ALNS operator weights on A-n80-k10](figures/alns_operator_weights_A-n80-k10.png)
+
+The ALNS adaptive layer is visibly working: operator weights move away from
+their initial 1.0 within the first ~50 iterations and then stabilize once
+improvements dry up. The weights drift toward the reject-score floor
+because late iterations rarely produce accepted candidates — expected
+behavior for a run that has already converged, not a malfunction.
+
 Honest note on X-n101-k25: its total demand is 5147 while the total fleet
 capacity is 25 × 206 = 5150 — only 3 units of slack over 25 routes, so
 almost every route must be loaded completely full. Clarke-Wright needed 28
@@ -420,11 +483,17 @@ and staged workflow.
 - Print/validate the final plan:
   `python scripts/print_final_experiment_plan.py --require-official-data`
 - Full final run (resumable): `python scripts/run_final_experiments.py`
-- Report figures: `python scripts/generate_report_figures.py`, then
+- Report figures: `python scripts/generate_report_figures.py`, plus
+  `python scripts/generate_route_visualizations.py` and
+  `python scripts/generate_convergence_figures.py`, then
   `python scripts/export_report_pdf.py` for this PDF
 - Report facts: `python scripts/extract_report_numbers.py`
-- All generated results stay under `results/final_experiments/` and are not
-  committed to Git.
+- Small evidence snapshots of the result files cited by this report are
+  committed under `report/evidence/` (summaries, GP/GEP runs, execution
+  manifest). The full generated outputs stay under
+  `results/final_experiments/` locally and are not committed to Git, and
+  the official `.vrp` files are user-provided data that is also kept out of
+  the repository.
 
 The final runner is what makes the experiments reproducible in practice:
 it validates the plan and the official data before anything runs, executes
