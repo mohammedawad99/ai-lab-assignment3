@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 6-A — all six CVRP algorithm foundations plus GP for Rush Hour done. No GEP yet.
+Stage 6-B — all six CVRP algorithm foundations plus GP and GEP for Rush Hour done.
 
 ## Requirements
 
@@ -251,6 +251,25 @@ Optional history and best-expression output:
 
 ```
 python scripts/run_gp_rushhour.py --puzzles examples/rushhour_gp_train.txt --output results/gp_rushhour_history.csv --best-output results/gp_best_expression.txt
+```
+
+## Stage 6-B: GEP for Rush Hour heuristics
+
+A basic Gene Expression Programming system was added. Unlike GP, GEP uses a
+linear genome with a head (functions or terminals) and a tail (terminals
+only, length head+1), decoded as a Karva/K-expression into a heuristic
+expression. Candidates are evaluated exactly like the GP ones: A* through
+the safe evaluator with node and time caps, so bad heuristics cannot hang
+the run. The training set is the same 4 puzzles as GP for fair comparison.
+
+```
+python scripts/run_gep_rushhour.py --puzzles examples/rushhour_gep_train.txt --generations 10 --population-size 20 --head-length 6 --seed 42
+```
+
+Optional history and best-expression output:
+
+```
+python scripts/run_gep_rushhour.py --puzzles examples/rushhour_gep_train.txt --output results/gep_rushhour_history.csv --best-output results/gep_best_expression.txt
 ```
 
 ## Usage
