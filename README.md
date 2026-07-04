@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 1-A — CVRP core (model, parser, cost, validation). No solvers yet.
+Stage 1-B — CVRP core and Rush Hour core done. No solvers or GP/GEP yet.
 
 ## Requirements
 
@@ -57,6 +57,24 @@ Also print `0 0` lines for unused vehicles:
 
 ```
 python scripts/validate_cvrp_solution.py --instance examples/tiny_cvrp.vrp --solution examples/tiny_solution.txt --include-unused-vehicles
+```
+
+## Stage 1-B: Rush Hour core
+
+Basic Rush Hour board parsing (36-character strings), vehicle detection, legal move
+generation, board features, baseline heuristics and a simple A* search with node and
+time caps were added. A tiny one-move puzzle lives under `examples/`.
+
+Solve a puzzle:
+
+```
+python scripts/solve_rushhour.py --puzzle examples/rushhour_tiny.txt
+```
+
+Choose a heuristic (`zero`, `blocking`, `blocking_distance`):
+
+```
+python scripts/solve_rushhour.py --puzzle examples/rushhour_tiny.txt --heuristic blocking_distance
 ```
 
 ## Usage
