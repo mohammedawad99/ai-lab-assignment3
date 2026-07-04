@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 4-A — ACO foundations done (CVRP + Ackley). No GA/ALNS/B&B or GP/GEP yet.
+Stage 4-B — GA Island Model foundations done (CVRP + Ackley). No ALNS/B&B or GP/GEP yet.
 
 ## Requirements
 
@@ -167,6 +167,27 @@ Ackley:
 
 ```
 python scripts/run_ackley_aco.py --iterations 100 --ants 20 --seed 42
+```
+
+## Stage 4-B: GA Island Model foundations
+
+A Genetic Algorithm with an Island Model was added for CVRP and Ackley.
+The CVRP version uses a giant-tour chromosome (a permutation of all
+customers) with a capacity-aware split into routes; Ackley uses continuous
+vectors with blend crossover and Gaussian mutation. Islands evolve
+separately and exchange their best individuals in a ring every few
+generations.
+
+CVRP:
+
+```
+python scripts/run_cvrp_ga_island.py --instance examples/tiny_cvrp.vrp --generations 100 --population-size 30 --islands 4 --seed 42
+```
+
+Ackley:
+
+```
+python scripts/run_ackley_ga_island.py --generations 100 --population-size 30 --islands 4 --seed 42
 ```
 
 ## Usage
