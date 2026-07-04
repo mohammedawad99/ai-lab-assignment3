@@ -11,7 +11,7 @@ Two parts:
 
 ## Status
 
-Stage 7-A — all algorithm foundations plus a unified experiment runner done. Official benchmark data and final experiments come next.
+Stage 7-B — official CVRP benchmark setup (manifest + BKS table + checker) done. Final experiments come next.
 
 ## Requirements
 
@@ -315,6 +315,44 @@ Both parts:
 
 ```
 python scripts/run_experiments.py --part both --instances examples/tiny_cvrp.vrp --algorithms sa tabu aco --seeds 42 --budget 20 --timeout 5 --dimension 4 --output-dir results/smoke_experiments
+```
+
+## Stage 7-B: Official CVRP benchmark setup
+
+The project now has a BKS (best-known-solution) table for the six official
+CVRP instances under `data/cvrp_bks.csv`. The official `.vrp` files are not
+part of the repository — place them manually under:
+
+```
+data/official_cvrp/
+```
+
+Expected filenames:
+
+- P-n16-k8.vrp
+- E-n22-k4.vrp
+- A-n32-k5.vrp
+- A-n80-k10.vrp
+- X-n101-k25.vrp
+- M-n200-k17.vrp
+
+Only the six listed instances are expected. A checker verifies the setup and
+can be run before the data is placed:
+
+```
+python scripts/check_official_cvrp_data.py
+```
+
+Strict mode requires all six files to be present and parseable:
+
+```
+python scripts/check_official_cvrp_data.py --strict
+```
+
+Optional CSV report:
+
+```
+python scripts/check_official_cvrp_data.py --csv-output results/official_cvrp_data_check.csv
 ```
 
 ## Usage
