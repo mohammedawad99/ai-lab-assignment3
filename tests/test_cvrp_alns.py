@@ -140,3 +140,86 @@ def test_cli_output_file(tmp_path):
     assert proc.returncode == 0
     assert output.exists()
     assert output.read_text().splitlines()[0] == "80.64"
+
+
+# ---------- stage 10-A: enhanced operators ----------
+
+def test_shaw_removal_never_removes_depot(tiny_setup):
+    from src.cvrp.solvers.alns import shaw_related_removal
+    instance, matrix, solution = tiny_setup
+    rng = np.random.default_rng(5)
+    partial, removed = shaw_related_removal(instance, solution, matrix, rng,
+                                            remove_count=2)
+    assert len(removed) == 2
+    assert 0 not in removed
+    assert solution_customer_set(partial).isdisjoint(removed)
+    assert solution_customer_set(partial) | set(removed) == set(instance.customer_ids)
+
+
+def test_route_removal_preserves_other_routes(tiny_setup):
+    from src.cvrp.solvers.alns import route_removal
+    instance, matrix, solution = tiny_setup
+    rng = np.random.default_rng(6)
+    partial, removed = route_removal(instance, solution, matrix, rng, remove_count=1)
+    assert removed  # at least one full route was emptied
+    assert 0 not in removed
+    # non-removed routes must be untouched
+    survivors = [r for r in partial.routes if len(r) > 2]
+    for route in survivors:
+        assert route in solution.routes
+    assert solution_customer_set(partial) | set(removed) == set(instance.customer_ids)
+
+
+def test_segment_removal_keeps_all_customers(tiny_setup):
+    from src.cvrp.solvers.alns import segment_removal
+    instance, matrix, solution = tiny_setup
+    rng = np.random.default_rng(7)
+    partial, removed = segment_removal(instance, solution, matrix, rng, remove_count=2)
+    assert removed
+    assert 0 not in removed
+    assert solution_customer_set(partial) | set(removed) == set(instance.customer_ids)
+
+
+def test_regret3_repair_rebuilds_full_solution(tiny_setup):
+    from src.cvrp.solvers.alns import regret3_repair
+    instance, matrix, solution = tiny_setup
+    rng = np.random.default_rng(8)
+    partial, removed = random_removal(instance, solution, rng, remove_count=2)
+    repaired = regret3_repair(instance, partial, removed, matrix)
+    assert repaired is not None
+    check = validate_solution(instance, repaired)
+    assert check.feasible, check.errors
+    assert solution_customer_set(repaired) == set(instance.customer_ids)
+
+
+def test_enhanced_alns_feasible_on_tiny(tiny):
+    result = run_cvrp_alns(tiny, iterations=30, seed=42, timeout_sec=5.0,
+                           enhanced_operators=True)
+    assert result.feasible
+    assert result.best_cost == pytest.approx(80.64, abs=0.05)
+
+
+def test_enhanced_destroy_repair_roundtrip_no_loss(tiny_setup):
+    # many random destroy+repair cycles must never lose or duplicate customers
+    from src.cvrp.solvers.alns import (regret3_repair, route_removal,
+                                       segment_removal, shaw_related_removal)
+    instance, matrix, solution = tiny_setup
+    rng = np.random.default_rng(9)
+    expected = set(instance.customer_ids)
+    for destroy in (shaw_related_removal, route_removal, segment_removal):
+        current = solution
+        for _ in range(10):
+            partial, removed = destroy(instance, current, matrix, rng, 2)
+            repaired = regret3_repair(instance, partial, removed, matrix)
+            assert repaired is not None
+            assert solution_customer_set(repaired) == expected
+            current = repaired
+
+
+def test_tuning_script_help():
+    import subprocess, sys
+    proc = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "tune_cvrp_algorithms.py"),
+         "--help"], capture_output=True, text=True, cwd=REPO_ROOT)
+    assert proc.returncode == 0
+    assert "--algorithms" in proc.stdout

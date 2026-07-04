@@ -104,11 +104,15 @@ def make_initial_population(instance: CVRPInstance, distance_matrix,
     baseline = build_multistage_baseline(instance).solution
     population = [chromosome_from_solution(baseline)]
     seen = {tuple(population[0])}
+    attempts = 0
     while len(population) < population_size:
         chromosome = random_chromosome(instance, rng)
         key = tuple(chromosome)
-        if key in seen and len(seen) < population_size * 3:
-            continue  # avoid obvious duplicates, but do not loop forever
+        attempts += 1
+        # avoid obvious duplicates, but never loop forever: with few customers
+        # there may be fewer distinct permutations than population slots
+        if key in seen and attempts < population_size * 10:
+            continue
         seen.add(key)
         population.append(chromosome)
     return population

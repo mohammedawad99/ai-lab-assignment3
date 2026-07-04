@@ -139,3 +139,21 @@ def test_cli_output_file(tmp_path):
     assert proc.returncode == 0
     assert output.exists()
     assert output.read_text().splitlines()[0] == "80.64"
+
+
+def test_population_larger_than_permutation_count_terminates(tiny):
+    # tiny has 4 customers = only 24 distinct permutations; asking for a
+    # population of 30 used to loop forever in make_initial_population
+    matrix = build_distance_matrix(tiny)
+    rng = np.random.default_rng(0)
+    population = make_initial_population(tiny, matrix, 30, rng)
+    assert len(population) == 30
+    assert all(sorted(c) == [1, 2, 3, 4] for c in population)
+
+
+def test_tuned_ga_settings_terminate_on_tiny(tiny):
+    result = run_cvrp_ga_island(tiny, generations=10, population_size=30,
+                                islands=2, mutation_rate=0.3, seed=42,
+                                timeout_sec=5.0)
+    assert result.feasible
+    assert result.best_cost == pytest.approx(80.64, abs=0.05)

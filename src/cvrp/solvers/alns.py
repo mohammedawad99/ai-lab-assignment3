@@ -102,6 +102,84 @@ def worst_removal(instance: CVRPInstance, solution: CVRPSolution,
     return CVRPSolution(routes=routes), sorted(removed)
 
 
+def shaw_related_removal(instance: CVRPInstance, solution: CVRPSolution,
+                         distance_matrix, rng, remove_count: int):
+    """Shaw-style removal: remove customers that are related to each other
+    (geographically close, similar demand, bonus for sharing a route)."""
+    d = distance_matrix
+    customers = sorted(solution_customer_set(solution))
+    if not customers:
+        return CVRPSolution(routes=[list(r) for r in solution.routes]), []
+    remove_count = min(remove_count, len(customers))
+
+    route_of = {}
+    for idx, route in enumerate(solution.routes):
+        for node in route:
+            if node != 0:
+                route_of[node] = idx
+    max_distance = max(max(row) for row in d) or 1.0
+    max_demand = max(instance.demands.get(c, 0.0) for c in customers) or 1.0
+
+    removed = [int(rng.choice(customers))]
+    while len(removed) < remove_count:
+        reference = removed[int(rng.integers(0, len(removed)))]
+        candidates = [c for c in customers if c not in removed]
+
+        def relatedness(c):
+            score = d[reference][c] / max_distance
+            score += abs(instance.demands.get(reference, 0.0)
+                         - instance.demands.get(c, 0.0)) / max_demand
+            if route_of.get(c) != route_of.get(reference):
+                score += 0.5  # different route counts as less related
+            return score
+
+        candidates.sort(key=lambda c: (relatedness(c), c))
+        top = candidates[:min(3, len(candidates))]
+        removed.append(int(top[int(rng.integers(0, len(top)))]))
+
+    removed_set = set(removed)
+    routes = [[node for node in route if node == 0 or node not in removed_set]
+              for route in solution.routes]
+    return CVRPSolution(routes=routes), sorted(removed)
+
+
+def route_removal(instance: CVRPInstance, solution: CVRPSolution,
+                  distance_matrix, rng, remove_count: int):
+    """Remove one or two complete routes so their customers can be
+    redistributed. Other routes are preserved untouched."""
+    used = [i for i, route in enumerate(solution.routes)
+            if any(node != 0 for node in route[1:-1])]
+    if len(used) <= 1:
+        return CVRPSolution(routes=[list(r) for r in solution.routes]), []
+    average_size = sum(len(solution.routes[i]) - 2 for i in used) / len(used)
+    count = 2 if (remove_count > average_size and len(used) > 2) else 1
+    picked = {int(i) for i in rng.choice(used, size=count, replace=False)}
+
+    removed = sorted(node for i in picked
+                     for node in solution.routes[i] if node != 0)
+    routes = [[0, 0] if i in picked else list(route)
+              for i, route in enumerate(solution.routes)]
+    return CVRPSolution(routes=routes), removed
+
+
+def segment_removal(instance: CVRPInstance, solution: CVRPSolution,
+                    distance_matrix, rng, remove_count: int):
+    """Remove a consecutive customer segment from one random used route."""
+    used = [i for i, route in enumerate(solution.routes) if len(route) > 2]
+    if not used:
+        return CVRPSolution(routes=[list(r) for r in solution.routes]), []
+    r_idx = int(rng.choice(used))
+    route = solution.routes[r_idx]
+    inner = route[1:-1]
+    segment_length = max(1, min(remove_count, len(inner)))
+    start = int(rng.integers(0, len(inner) - segment_length + 1))
+    removed = [node for node in inner[start:start + segment_length] if node != 0]
+
+    routes = [list(r) for r in solution.routes]
+    routes[r_idx] = route[:1 + start] + route[1 + start + segment_length:]
+    return CVRPSolution(routes=routes), sorted(removed)
+
+
 # ---------- repair operators ----------
 
 def _insertion_options(instance, routes, customer, distance_matrix):
@@ -174,13 +252,47 @@ def regret2_repair(instance: CVRPInstance, partial_solution: CVRPSolution,
     return solution
 
 
+def regret3_repair(instance: CVRPInstance, partial_solution: CVRPSolution,
+                   removed_customers: list[int], distance_matrix):
+    """Regret-3 insertion: prefer the customer whose third-best insertion is
+    much worse than its best one. Falls back to regret-2-like scoring when a
+    customer has fewer than three feasible insertions."""
+    routes = [list(route) for route in partial_solution.routes]
+    remaining = sorted(removed_customers)
+
+    while remaining:
+        best_pick = None  # ((regret, -best_delta, -customer), customer, option)
+        for customer in remaining:
+            options = _insertion_options(instance, routes, customer, distance_matrix)
+            if not options:
+                return None
+            if len(options) >= 3:
+                regret = options[2][0] - options[0][0]
+            elif len(options) == 2:
+                # few placements left: schedule earlier than 3-option customers
+                regret = (options[1][0] - options[0][0]) + BIG_REGRET / 2
+            else:
+                regret = BIG_REGRET
+            candidate = (regret, -options[0][0], -customer)
+            if best_pick is None or candidate > best_pick[0]:
+                best_pick = (candidate, customer, options[0])
+        _, customer, option = best_pick
+        _apply_insertion(routes, customer, option)
+        remaining.remove(customer)
+
+    solution = CVRPSolution(routes=routes)
+    solution.cost = solution_cost(solution, distance_matrix)
+    return solution
+
+
 # ---------- full solver ----------
 
 def run_cvrp_alns(instance: CVRPInstance, iterations: int = 1000, seed: int = 42,
                   timeout_sec: float = 10.0, min_removal: int = 1,
                   max_removal_fraction: float = 0.3,
                   initial_temperature: float = 100.0, cooling_rate: float = 0.995,
-                  reaction_rate: float = 0.2) -> CVRPSolverResult:
+                  reaction_rate: float = 0.2,
+                  enhanced_operators: bool = False) -> CVRPSolverResult:
     start_elapsed = time.perf_counter()
     start_cpu = time.process_time()
 
@@ -190,8 +302,25 @@ def run_cvrp_alns(instance: CVRPInstance, iterations: int = 1000, seed: int = 42
     best = copy_solution(current)
 
     rng = np.random.default_rng(seed)
-    destroy_weights = {"random_removal": 1.0, "worst_removal": 1.0}
-    repair_weights = {"greedy_repair": 1.0, "regret2_repair": 1.0}
+    destroy_operators = {
+        "random_removal": lambda cur, count: random_removal(instance, cur, rng, count),
+        "worst_removal": lambda cur, count: worst_removal(
+            instance, cur, distance_matrix, rng, count),
+    }
+    repair_operators = {
+        "greedy_repair": greedy_repair,
+        "regret2_repair": regret2_repair,
+    }
+    if enhanced_operators:
+        destroy_operators["shaw_removal"] = lambda cur, count: shaw_related_removal(
+            instance, cur, distance_matrix, rng, count)
+        destroy_operators["route_removal"] = lambda cur, count: route_removal(
+            instance, cur, distance_matrix, rng, count)
+        destroy_operators["segment_removal"] = lambda cur, count: segment_removal(
+            instance, cur, distance_matrix, rng, count)
+        repair_operators["regret3_repair"] = regret3_repair
+    destroy_weights = {name: 1.0 for name in destroy_operators}
+    repair_weights = {name: 1.0 for name in repair_operators}
 
     customer_count = len(instance.customer_ids)
     max_removal = max(min_removal, int(max_removal_fraction * customer_count))
@@ -200,17 +329,18 @@ def run_cvrp_alns(instance: CVRPInstance, iterations: int = 1000, seed: int = 42
     completed = 0
 
     def record(iteration):
-        convergence.append({
+        row = {
             "iteration": iteration,
             "best_cost": best.cost,
             "current_cost": current.cost,
             "elapsed_time": time.perf_counter() - start_elapsed,
             "cpu_time": time.process_time() - start_cpu,
-            "random_removal_weight": destroy_weights["random_removal"],
-            "worst_removal_weight": destroy_weights["worst_removal"],
-            "greedy_repair_weight": repair_weights["greedy_repair"],
-            "regret2_repair_weight": repair_weights["regret2_repair"],
-        })
+        }
+        for name, weight in destroy_weights.items():
+            row[f"{name}_weight"] = weight
+        for name, weight in repair_weights.items():
+            row[f"{name}_weight"] = weight
+        convergence.append(row)
 
     record(0)
     for it in range(1, iterations + 1):
@@ -222,16 +352,9 @@ def run_cvrp_alns(instance: CVRPInstance, iterations: int = 1000, seed: int = 42
         repair_name = choose_by_weight(repair_weights, rng)
         remove_count = int(rng.integers(min_removal, max_removal + 1))
 
-        if destroy_name == "random_removal":
-            partial, removed = random_removal(instance, current, rng, remove_count)
-        else:
-            partial, removed = worst_removal(instance, current, distance_matrix,
-                                             rng, remove_count)
-
-        if repair_name == "greedy_repair":
-            candidate = greedy_repair(instance, partial, removed, distance_matrix)
-        else:
-            candidate = regret2_repair(instance, partial, removed, distance_matrix)
+        partial, removed = destroy_operators[destroy_name](current, remove_count)
+        candidate = repair_operators[repair_name](instance, partial, removed,
+                                                  distance_matrix)
 
         score = SCORE_REJECTED
         if candidate is not None:

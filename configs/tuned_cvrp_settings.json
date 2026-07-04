@@ -1,0 +1,22 @@
+{
+  "note": "Tuned CVRP solver settings accepted in Stage 10-A. Budgets/timeouts still come from final_experiment_plan.json; these are per-algorithm parameter overrides validated on all six official instances with seeds 42-44.",
+  "alns": {
+    "enhanced_operators": true,
+    "reaction_rate": 0.5,
+    "validation_note": "Improves P-n16-k8 (-0.14), A-n80-k10 (-1.01) and X-n101-k25 (-2.07) best gaps, ties E/A32, but regresses M-n200-k17 by +1.02. Accepted for the net mean improvement; the solver default stays enhanced_operators=false so base behavior is unchanged without this config."
+  },
+  "sa": {
+    "iterations_factor": 50,
+    "cooling_rate": 0.9995,
+    "initial_temperature": 500.0
+  },
+  "ga_island": {
+    "population_size": 30,
+    "islands": 2,
+    "mutation_rate": 0.3
+  },
+  "bnb_lds": {
+    "changed": false,
+    "reason": "No safe low-risk improvement found: a tighter lower bound risks cutting the true optimum, and the incumbent already comes from the strong multi-stage baseline. Left unchanged."
+  }
+}
