@@ -248,6 +248,81 @@ def main():
              "expanded nodes", "rushhour_per_puzzle_difficulty.png",
              value_fmt="{:.0f}", log=True)
 
+    # ---- seed-robustness boxplots (only when the local run exists) ----
+    robustness = REPO_ROOT / "results" / "robustness" / "cvrp_seed_robustness_raw.csv"
+    if robustness.exists():
+        rob = [r for r in read_rows(robustness) if r["gap_percent"]]
+        rob_instances = [i for i in INSTANCES
+                         if any(r["instance"] == i for r in rob)]
+        algorithms_order = ["baseline", "bnb_lds", "sa", "tabu", "aco",
+                            "ga_island", "alns_effective"]
+
+        def grouped(metric):
+            data = {}
+            for inst in rob_instances:
+                data[inst] = [
+                    [float(r[metric]) for r in rob
+                     if r["instance"] == inst and r["algorithm"] == algo]
+                    for algo in algorithms_order
+                ]
+            return data
+
+        for metric, title, ylabel, filename, use_log in [
+            ("gap_percent", "CVRP gap distribution over seeds",
+             "gap vs BKS (%)", "cvrp_seed_gap_boxplots.png", False),
+            ("elapsed_time", "CVRP runtime distribution over seeds (log scale)",
+             "seconds", "cvrp_seed_runtime_boxplots.png", True),
+        ]:
+            data = grouped(metric)
+            fig, axes = plt.subplots(2, 2, figsize=(11.5, 7.6))
+            for ax, inst in zip(axes.flat, rob_instances):
+                ax.boxplot(data[inst], tick_labels=[a.replace("_effective", "")
+                                                    for a in algorithms_order])
+                ax.set_title(inst, fontsize=10)
+                ax.tick_params(axis="x", rotation=45, labelsize=7)
+                ax.tick_params(axis="y", labelsize=8)
+                if use_log:
+                    ax.set_yscale("log")
+            fig.suptitle(f"{title} ({len({r['seed'] for r in rob})} seeds per box)")
+            fig.supylabel(ylabel)
+            fig.tight_layout()
+            path = FIGURES / filename
+            fig.savefig(path, dpi=150)
+            plt.close(fig)
+            created.append(path)
+
+        # win rate vs baseline per instance/algorithm
+        fig, ax = plt.subplots(figsize=(9.0, 4.4))
+        width = 0.8 / (len(algorithms_order) - 1)
+        compare = [a for a in algorithms_order if a != "baseline"]
+        for k, algo in enumerate(compare):
+            rates = []
+            for inst in rob_instances:
+                base = {r["seed"]: float(r["gap_percent"]) for r in rob
+                        if r["instance"] == inst and r["algorithm"] == "baseline"}
+                mine = {r["seed"]: float(r["gap_percent"]) for r in rob
+                        if r["instance"] == inst and r["algorithm"] == algo}
+                seeds = sorted(set(base) & set(mine))
+                wins = sum(1 for s in seeds if mine[s] < base[s] - 1e-9)
+                rates.append(100.0 * wins / len(seeds) if seeds else 0.0)
+            positions = [i + k * width for i in range(len(rob_instances))]
+            ax.bar(positions, rates, width=width,
+                   label=algo.replace("_effective", ""))
+        centers = [i + 0.4 - width / 2 for i in range(len(rob_instances))]
+        ax.set_xticks(centers)
+        ax.set_xticklabels(rob_instances, rotation=15)
+        ax.set_ylabel("% of seeds beating baseline")
+        ax.set_title("Per-seed win rate against the multi-stage baseline")
+        ax.legend(fontsize=7, ncol=3)
+        fig.tight_layout()
+        path = FIGURES / "cvrp_seed_win_rate_vs_baseline.png"
+        fig.savefig(path, dpi=150)
+        plt.close(fig)
+        created.append(path)
+    else:
+        print("note: results/robustness raw CSV not found, "
+              "seed boxplot figures not regenerated (committed PNGs kept)")
+
     # ---- code snippet figures (real source lines) ----
     render_text_image(extract_snippet("src/cvrp/local_search.py",
                                       "def build_routes_subset_sum_packing", 28),

@@ -146,8 +146,16 @@ def run_one_cvrp_algorithm(instance, instance_path, algorithm, seed, budget,
                                reaction_rate=alns_cfg.get("reaction_rate", 0.2))
         budget_name = "iterations"
     elif algorithm == "bnb_lds":
-        result = run_cvrp_bnb_lds(instance, max_discrepancy=3,
-                                  max_nodes=max(1000, budget * 100), seed=seed,
+        bnb_cfg = tuned.get("bnb_lds", {})
+        max_discrepancy = 3
+        max_nodes = max(1000, budget * 100)
+        small_limit = bnb_cfg.get("small_instance_max_customers")
+        if small_limit and len(instance.customer_ids) <= small_limit:
+            # small-instance mode: deeper LDS budget, still timeout-capped
+            max_discrepancy = int(bnb_cfg.get("small_max_discrepancy", 3))
+            max_nodes = int(bnb_cfg.get("small_max_nodes", max_nodes))
+        result = run_cvrp_bnb_lds(instance, max_discrepancy=max_discrepancy,
+                                  max_nodes=max_nodes, seed=seed,
                                   timeout_sec=timeout_sec)
         budget_name = "max_nodes"
     else:

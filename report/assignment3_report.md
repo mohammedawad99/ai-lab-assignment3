@@ -168,9 +168,9 @@ view):
 | sa (tuned) | 6.74% | 4/6 |
 | ga_island (tuned) | 7.28% | 5/6 |
 | aco | 7.56% | 4/6 |
+| bnb_lds (small-instance mode) | 7.77% | 2/6 |
 | tabu | 8.09% | 5/6 |
 | baseline | 8.70% | — |
-| bnb_lds | 8.70% | 0/6 |
 
 ![CVRP mean gap by algorithm](figures/cvrp_mean_gap_by_algorithm.png)
 
@@ -179,9 +179,11 @@ single instance. The tuned SA is the biggest single mover (its mean best
 gap fell from 8.50% to 6.74% purely by spending its unused time budget on
 more iterations with a longer schedule), and the tuned GA improved to
 7.28% — but neither dominates, and both still fall back to baseline level
-on A-n80-k10. B&B/LDS matching the baseline exactly remains an honest
-result: within its node and discrepancy limits it never found anything
-better than its starting incumbent.
+on A-n80-k10. B&B/LDS finally earned its place with a small-instance mode
+(deeper discrepancy budget for instances with at most 25 customers): it
+now ties the project-best results on P-n16-k8 (0.30%) and E-n22-k4
+(0.07%) in about a second each — but on the four larger instances it still
+returns its starting incumbent, which is stated as-is.
 
 ![CVRP mean runtime by instance](figures/cvrp_runtime_by_instance.png)
 
@@ -252,6 +254,40 @@ pool (five destroy and three repair operators): weights move away from
 their initial 1.0 within the first ~50 iterations and then stabilize once
 improvements dry up. The drift toward the reject-score floor is expected
 behavior for a run that has already converged, not a malfunction.
+
+### 4.3 Seed robustness (8 seeds)
+
+Best values can hide luck, so the final effective algorithm set was rerun
+with eight seeds (42–49) on four representative instances — 224 runs, all
+feasible. The boxplots show the full gap distribution, not just the best:
+
+![Gap distribution over seeds](figures/cvrp_seed_gap_boxplots.png)
+
+Median-level reading, which is more honest than best-level:
+
+- **P-n16-k8**: everything beats the baseline on every seed; B&B/LDS is
+  the most robust of all (0.30% on all 8 seeds — it is deterministic), and
+  SA/ALNS have medians at 0.30% with occasional 0.43% seeds.
+- **A-n32-k5**: the headline 0.39–0.41% results of ALNS and SA are
+  **seed-sensitive** — their medians sit at the baseline 5.70%, meaning
+  most seeds do not escape it. ACO is quietly the most consistent improver
+  there (median 4.58%).
+- **A-n80-k10**: ALNS improves on most seeds (median 4.90%, best 3.02%);
+  Tabu improves slightly and consistently (median 4.89%); everything else
+  sits on the baseline.
+- **X-n101-k25**: GA-Island is the most robust improver (median 25.01%,
+  best 24.20%); ALNS helps on some seeds only (median 26.86%).
+
+![Runtime distribution over seeds](figures/cvrp_seed_runtime_boxplots.png)
+
+![Per-seed win rate vs baseline](figures/cvrp_seed_win_rate_vs_baseline.png)
+
+The win-rate chart summarizes the same story: on the small instance every
+method wins every seed; on the tighter instances only some methods win
+reliably. With 8 seeds these are descriptive statistics — no significance
+test is claimed — but they make one thing clear that the best-value tables
+cannot: ALNS's advantage is broad but not uniform, and some of the tuned
+wins (especially on A-n32-k5) depend on the seed.
 
 Honest note on X-n101-k25: its total demand is 5147 while the total fleet
 capacity is 25 × 206 = 5150 — only 3 units of slack over 25 routes, so
@@ -369,11 +405,19 @@ runtime.
 
 A time-limited search over customer insertion decisions (hardest customers
 first), where taking the k-th cheapest insertion costs k discrepancy, with
-a partial-cost bound against the incumbent. It is exact-inspired, not a
-full exact solver for these sizes: within the node/discrepancy limits it
-never beat the baseline incumbent on any official instance, so its rows
-match the baseline (mean gap 8.70%). It proved useful mainly as a
-correctness reference.
+a partial-cost bound against the incumbent. With the original shallow
+budget (discrepancy 3) it never beat its starting incumbent anywhere. The
+final version adds a **small-instance mode**: instances with at most 25
+customers get discrepancy 15 and a 2M-node cap (still timeout-capped,
+still falling back to the incumbent). Measured effect: P-n16-k8 improves
+from 2.65% to 0.30% in ~0.03 s and E-n22-k4 from 3.34% to 0.07% in ~1.1 s
+— both tie the best results any metaheuristic found, and being a
+deterministic search, it hits them on every seed. The same depth was
+tested on A-n32-k5 (31 customers, depth 12, 8 s) without any improvement,
+so the threshold honestly stops at 25 customers; on the four larger
+instances B&B/LDS still returns its incumbent (overall mean gap 7.77%,
+beating the baseline on 2/6). It remains exact-inspired, not a full exact
+solver for these sizes.
 
 ## 7. Ackley Adaptations
 
@@ -515,11 +559,17 @@ the tuned settings, and the pre-declared ALNS policy.
   different representations, not renames.
 - **Runtime vs quality.** ALNS delivers the best average CVRP quality at
   moderate runtime; ACO remains the most expensive; tuned SA uses its
-  budget instead of leaving it idle. B&B/LDS spent its budget without
-  beating the incumbent.
+  budget instead of leaving it idle. B&B/LDS with the small-instance mode
+  ties the best results on the two smallest instances almost for free, but
+  spends its budget without beating the incumbent everywhere else.
+- **Seed robustness.** The 8-seed analysis (Section 4.3) shows which wins
+  are stable: ALNS is a broad but not uniform improver, GA is the reliable
+  one on X, B&B/LDS is perfectly stable where it works, and the A-n32-k5
+  headline numbers are seed-lucky (median = baseline).
 - **Limitations.** One fixed budget/timeout profile per instance, three
-  seeds, one tuning pass validated on the same six instances, and a
-  14-puzzle Rush Hour set — the comparisons hold for this setup only.
+  seeds for the main tables (eight for the robustness section), one tuning
+  pass validated on the same six instances, and a 14-puzzle Rush Hour set —
+  the comparisons hold for this setup only.
 
 ## 11. Complexity and Practical Considerations
 
@@ -608,13 +658,16 @@ regressions: 0.07–0.39% on the three small instances, 3.02% on A-n80-k10,
 5.99% on M-n200-k17, and 24.20% on the capacity-tight X-n101-k25 — still
 large and reported as a real limitation rather than smoothed over. ALNS
 with the pre-declared hybrid policy is the only method beating the
-multi-stage baseline on all six instances; B&B/LDS never beat its
-incumbent, which is stated as-is. On Ackley (unchanged), the adapted ALNS
+multi-stage baseline on all six instances; B&B/LDS, after gaining a
+small-instance deep-search mode, ties the best known project results on
+the two smallest instances but still returns its incumbent on the four
+larger ones, which is stated as-is. On Ackley (unchanged), the adapted ALNS
 and B&B/LDS reached the optimum while untuned SA did not beat random
 search — a lesson the CVRP tuning then confirmed from the other direction.
 On the hard Rush Hour benchmark, both evolved frameworks beat the
 strongest manual heuristic by about 30% fewer A* expansions, while GP and
 GEP themselves remain honestly tied at the top with seed variance
 dominating. The main open improvements are capacity-aware compound moves
-for tight CVRP instances, a stronger bound for B&B/LDS, and pushing the
-hard Rush Hour set until the frameworks separate.
+for tight CVRP instances, a stronger bound to extend B&B/LDS beyond 25
+customers, and pushing the hard Rush Hour set until the frameworks
+separate.

@@ -20,7 +20,9 @@
     "mutation_rate": 0.3
   },
   "bnb_lds": {
-    "changed": false,
-    "reason": "No safe low-risk improvement found: a tighter lower bound risks cutting the true optimum, and the incumbent already comes from the strong multi-stage baseline. Left unchanged."
+    "small_instance_max_customers": 25,
+    "small_max_discrepancy": 15,
+    "small_max_nodes": 2000000,
+    "note": "Stage 10-F small-instance mode: instances with at most 25 customers get a much deeper discrepancy budget (still timeout-capped, still falls back to the incumbent). Measured effect: P-n16-k8 2.65% -> 0.30% and E-n22-k4 3.34% -> 0.07%, both in about a second. A-n32-k5 stays at baseline even at depth 12 (tested and rejected there), and larger instances keep the original settings. The threshold is by customer count, not instance names."
   }
 }

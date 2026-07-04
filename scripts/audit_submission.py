@@ -30,6 +30,7 @@ REQUIRED_FILES = [
     "report/evidence/rushhour_hard_gp_gep_summary.csv",
     "report/evidence/final_execution_manifest.json",
     "report/evidence/final_v2_summary.txt",
+    "report/evidence/cvrp_seed_robustness_summary.csv",
 ]
 
 RESULT_FILES = [
@@ -96,6 +97,8 @@ def main():
               "hard Rush Hour" in text and "blocker_depth" in text)
         check("report shows before/after tuning figure",
               "cvrp_before_after_tuning.png" in text)
+        check("report covers seed robustness",
+              "cvrp_seed_gap_boxplots.png" in text)
 
     # result files and row counts
     if args.check_results:

@@ -63,3 +63,41 @@ def test_no_generated_or_official_files_tracked():
     assert not any(p.startswith("results/") and p != "results/.gitkeep"
                    for p in tracked)
     assert not any(p.endswith(".vrp") and "official_cvrp" in p for p in tracked)
+
+
+def test_bnb_small_instance_mode():
+    # the tuned config gives small instances a deeper LDS budget; it must
+    # stay feasible, respect the timeout, and lose no customers
+    import time
+    from src.cvrp.io_cvrplib import parse_cvrplib
+    from src.cvrp.validate import validate_solution
+    from src.experiments.cvrp_experiments import run_one_cvrp_algorithm
+
+    tiny = parse_cvrplib(REPO_ROOT / "examples" / "tiny_cvrp.vrp")
+    tuned = json.loads((REPO_ROOT / "configs" / "tuned_cvrp_settings.json").read_text())
+    assert tuned["bnb_lds"]["small_instance_max_customers"] >= 4
+    start = time.perf_counter()
+    row = run_one_cvrp_algorithm(tiny, "examples/tiny_cvrp.vrp", "bnb_lds",
+                                 42, 10, 5.0, tuned=tuned)
+    assert time.perf_counter() - start < 6.0  # timeout respected with margin
+    assert row["feasible"] is True
+    assert float(row["best_cost"]) < 81.0
+
+
+def test_bnb_deep_mode_respects_timeout_directly():
+    from src.cvrp.io_cvrplib import parse_cvrplib
+    from src.cvrp.solvers.bnb_lds import run_cvrp_bnb_lds
+    from src.cvrp.validate import validate_solution
+    import time
+    inst = parse_cvrplib(REPO_ROOT / "data" / "official_cvrp" / "E-n22-k4.vrp") \
+        if (REPO_ROOT / "data" / "official_cvrp" / "E-n22-k4.vrp").exists() else None
+    if inst is None:
+        import pytest
+        pytest.skip("official E-n22-k4 not placed")
+    start = time.perf_counter()
+    result = run_cvrp_bnb_lds(inst, max_discrepancy=15, max_nodes=2000000,
+                              seed=42, timeout_sec=3.0)
+    assert time.perf_counter() - start < 10.0
+    assert result.feasible
+    check = validate_solution(inst, result.best_solution)
+    assert check.feasible, check.errors

@@ -22,6 +22,7 @@ EVIDENCE_FILES = [
     "rushhour_hard_manifest.json",
     "final_execution_manifest.json",
     "final_v2_summary.txt",
+    "cvrp_seed_robustness_summary.csv",
 ]
 
 VISUAL_FIGURES = [
