@@ -1,0 +1,176 @@
+"""Export report/assignment3_report.md to report/assignment3_report.pdf.
+
+Offline markdown-to-PDF rendering with matplotlib (pandoc/reportlab/browser
+tools are not installed on this machine). Headings, wrapped body text,
+aligned tables and the PNG figures from report/figures/ are all placed on
+A4 pages. The script verifies the result (size, page count, key text).
+
+Usage:
+    python scripts/export_report_pdf.py
+"""
+
+import re
+import sys
+import textwrap
+import zlib
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+matplotlib.rcParams["pdf.use14corefonts"] = True  # text stays extractable
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+REPORT_MD = REPO_ROOT / "report" / "assignment3_report.md"
+REPORT_PDF = REPO_ROOT / "report" / "assignment3_report.pdf"
+
+PAGE_W, PAGE_H = 8.27, 11.69  # A4 inches
+TOP, BOTTOM, LEFT = 0.6, 0.6, 0.6
+CONTENT_W = PAGE_W - 2 * LEFT
+LINE_H = 0.15
+IMAGE_DPI = 150.0
+
+IMAGE_RE = re.compile(r"^!\[[^\]]*\]\(([^)]+)\)\s*$")
+
+KEY_TEXT = ["Assignment 3 Report", "Ackley", "CVRP", "Rush Hour", "GP", "GEP"]
+
+
+def align_table(block):
+    """Pad the cells of consecutive '|' lines so columns line up."""
+    rows = [[cell.strip() for cell in line.strip().strip("|").split("|")]
+            for line in block]
+    widths = [max(len(row[i]) if i < len(row) else 0 for row in rows)
+              for i in range(max(len(r) for r in rows))]
+    out = []
+    for row in rows:
+        cells = [(row[i] if i < len(row) else "").ljust(widths[i])
+                 for i in range(len(widths))]
+        out.append("| " + " | ".join(cells) + " |")
+    return out
+
+
+def parse_items():
+    """Turn the markdown into a list of (kind, payload) render items."""
+    lines = REPORT_MD.read_text().splitlines()
+    items = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        image = IMAGE_RE.match(line)
+        if image:
+            items.append(("image", image.group(1)))
+        elif line.startswith("# "):
+            items.append(("h1", line[2:]))
+        elif line.startswith("## "):
+            items.append(("h2", line[3:]))
+        elif line.startswith("### "):
+            items.append(("h3", line[4:]))
+        elif line.lstrip().startswith("|"):
+            block = []
+            while i < len(lines) and lines[i].lstrip().startswith("|"):
+                block.append(lines[i])
+                i += 1
+            for aligned in align_table(block):
+                # wrap very wide table rows with a hanging indent
+                for part in textwrap.wrap(aligned, width=126,
+                                          subsequent_indent="    ") or [""]:
+                    items.append(("table", part))
+            continue
+        else:
+            for part in textwrap.wrap(line, width=98,
+                                      subsequent_indent="  ") or [""]:
+                items.append(("body", part))
+        i += 1
+    return items
+
+
+STYLE = {  # kind -> (fontsize, bold, spacing factor)
+    "h1": (15, True, 2.4),
+    "h2": (12.5, True, 2.0),
+    "h3": (10.5, True, 1.6),
+    "body": (8.5, False, 1.0),
+    "table": (6.5, False, 0.85),
+}
+
+
+def export():
+    items = parse_items()
+    with PdfPages(REPORT_PDF) as pdf:
+        fig = plt.figure(figsize=(PAGE_W, PAGE_H))
+        y = PAGE_H - TOP
+
+        def new_page(figure):
+            pdf.savefig(figure)
+            plt.close(figure)
+            return plt.figure(figsize=(PAGE_W, PAGE_H)), PAGE_H - TOP
+
+        for kind, payload in items:
+            if kind == "image":
+                image_path = (REPORT_MD.parent / payload).resolve()
+                if not image_path.exists():
+                    raise SystemExit(f"missing figure referenced in report: {payload}")
+                array = mpimg.imread(image_path)
+                height_px, width_px = array.shape[0], array.shape[1]
+                width_in = min(width_px / IMAGE_DPI, CONTENT_W)
+                height_in = width_in * height_px / width_px
+                if height_in > PAGE_H - TOP - BOTTOM:
+                    height_in = PAGE_H - TOP - BOTTOM - 0.2
+                    width_in = height_in * width_px / height_px
+                if y - height_in - 0.15 < BOTTOM:
+                    fig, y = new_page(fig)
+                x0 = LEFT + (CONTENT_W - width_in) / 2
+                ax = fig.add_axes([x0 / PAGE_W, (y - height_in) / PAGE_H,
+                                   width_in / PAGE_W, height_in / PAGE_H])
+                ax.imshow(array)
+                ax.axis("off")
+                y -= height_in + 0.25
+                continue
+
+            size, bold, spacing = STYLE[kind]
+            need = LINE_H * spacing
+            if kind in ("h1", "h2") and y < BOTTOM + 1.2:
+                fig, y = new_page(fig)  # do not leave a heading at page bottom
+            if y - need < BOTTOM:
+                fig, y = new_page(fig)
+            if payload:
+                fig.text(LEFT / PAGE_W, y / PAGE_H, payload, fontsize=size,
+                         family="monospace",
+                         fontweight="bold" if bold else "normal",
+                         va="top", ha="left")
+            y -= need
+        pdf.savefig(fig)
+        plt.close(fig)
+
+
+def verify():
+    data = REPORT_PDF.read_bytes()
+    size = len(data)
+    pages = data.count(b"/Type /Page") - data.count(b"/Type /Pages")
+    extracted = b""
+    for match in re.finditer(rb"stream\r?\n(.*?)endstream", data, re.S):
+        try:
+            extracted += zlib.decompress(match.group(1))
+        except zlib.error:
+            extracted += match.group(1)
+    missing = [key for key in KEY_TEXT if key.encode() not in extracted]
+    print(f"pdf: {REPORT_PDF}")
+    print(f"size: {size} bytes")
+    print(f"pages: {pages}")
+    print(f"key text missing: {missing or 'none'}")
+    ok = size > 100_000 and pages >= 10 and not missing
+    print(f"verify: {'PASS' if ok else 'FAIL'}")
+    return ok
+
+
+def main():
+    if not REPORT_MD.exists():
+        raise SystemExit(f"report not found: {REPORT_MD}")
+    export()
+    sys.exit(0 if verify() else 1)
+
+
+if __name__ == "__main__":
+    main()

@@ -50,7 +50,9 @@ def test_audit_does_not_require_tracked_official_data():
 
 @pytest.mark.skipif(not PDF_PATH.exists(), reason="PDF not exported")
 def test_pdf_exists_and_is_not_tiny():
-    assert PDF_PATH.stat().st_size > 10_000
+    # the visual export with embedded figures is ~450 KB; the old text-only
+    # export was ~34 KB, so 100 KB separates the two
+    assert PDF_PATH.stat().st_size > 100_000
 
 
 def test_no_forbidden_root_files():

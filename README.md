@@ -11,7 +11,15 @@ Two parts:
 
 ## Status
 
-Stage 9-D — final report (Markdown + PDF) under `report/`, submission audit in place.
+Stage 9-C2 — visual final report (Markdown + PDF with figures) under `report/`, submission audit in place.
+
+Report figures live under `report/figures/` and the visual PDF can be
+regenerated with:
+
+```
+python scripts/generate_report_figures.py
+python scripts/export_report_pdf.py
+```
 
 The final audit can be run with:
 

@@ -77,6 +77,20 @@ Final results (3 seeds per algorithm, budget 500, timeout 60 s), from
 | random_search | 3 | 17.933 | 18.320 | 0.481 | 30.278 | 0.009 |
 | ackley_sa | 3 | 19.907 | 20.041 | 0.118 | 46.706 | 0.007 |
 
+![Ackley best value by algorithm](figures/ackley_best_value_by_algorithm.png)
+
+The figure shows the best value each algorithm reached over its three seeds,
+sorted from best to worst. The spread is huge — from exactly 0 to almost 20 —
+which mostly reflects how well each adaptation fits a continuous function,
+not a universal ranking of the methods.
+
+![Ackley runtime by algorithm](figures/ackley_runtime_by_algorithm.png)
+
+Runtime (log scale) shows the other side: SA and random search are almost
+free, while ACO and GA-Island pay for population/colony bookkeeping. Note
+that B&B/LDS looks instant only because its greedy zero-first bin order
+finds the origin immediately and the search stops early.
+
 Short analysis. ALNS and B&B/LDS reached 0.000000 (six decimals) on every
 seed — but both benefit from knowing the optimum is at the origin: the ALNS
 "toward zero" repair operator and the B&B/LDS bin ranking by distance to
@@ -116,6 +130,15 @@ instance; after the Stage 9-B2 repair **all 126 rows are feasible**):
 | X-n101-k25 | 27591 | aco | 34613.14 | 25.45% | 21/21 |
 | M-n200-k17 | 1275 | alns | 1351.43 | 5.99% | 21/21 |
 
+![CVRP best gap by instance](figures/cvrp_best_gap_by_instance.png)
+
+The picture is very clear: the three small instances end below half a
+percent from the best known solutions, the two larger ones land at 4–6%,
+and X-n101-k25 stands out at 25.45%. That column is not an algorithm bug —
+it is a capacity-packing property of the instance, explained below. It
+should not be read as "the algorithms failed"; it should be read as "this
+instance leaves no room for the local moves these algorithms rely on".
+
 Per algorithm (mean gap over all 18 runs each, plus where it was strongest
 and weakest):
 
@@ -128,6 +151,23 @@ and weakest):
 | sa | 8.63% | P-n16-k8 (1.55%) | X-n101-k25 (26.95%) |
 | baseline | 8.70% | P-n16-k8 (2.65%) | X-n101-k25 (27.08%) |
 | bnb_lds | 8.70% | P-n16-k8 (2.65%) | X-n101-k25 (27.08%) |
+
+![CVRP mean gap by algorithm](figures/cvrp_mean_gap_by_algorithm.png)
+
+Averaged over all runs and instances, the ordering is ALNS < ACO <
+GA-Island < Tabu < SA < baseline = B&B/LDS. The differences are small
+(7.2%–8.7%) because the X instance dominates every mean; on the other five
+instances the ordering is similar but the absolute gaps are much smaller.
+B&B/LDS matching the baseline exactly is an honest result: within its node
+and discrepancy limits it never found anything better than its starting
+incumbent.
+
+![CVRP mean runtime by instance](figures/cvrp_runtime_by_instance.png)
+
+Mean runtime per run grows with instance size as expected (log scale). The
+values are averages over all seven algorithms, so the cheap methods (SA,
+baseline) pull the mean down; ACO alone accounts for most of the time on
+the two largest instances.
 
 Honest note on X-n101-k25: its total demand is 5147 while the total fleet
 capacity is 25 × 206 = 5150 — only 3 units of slack over 25 routes, so
@@ -154,6 +194,24 @@ The baseline heuristic runs in five stages:
    X-n101-k25 feasible.
 5. **Final validation** — a failed repair is returned as feasible=False
    with errors, never hidden.
+
+Why the repair stage was necessary: Clarke-Wright merges routes only while
+the merge is profitable, so on instances with a tight fleet it can stop
+with more routes than vehicles exist. This actually happened twice in the
+final runs — P-n16-k8 (9 routes for 8 vehicles) and X-n101-k25 (28 routes
+for 25). Without the repair, every algorithm that starts from the baseline
+would inherit an infeasible incumbent, which is exactly what the first
+final run showed before stages 8-B2/9-B2. The subset-sum packing below is
+the piece that finally made X-n101-k25 feasible:
+
+![Subset-sum vehicle repair code](figures/code_baseline_repair.png)
+
+The idea is simple to state: when total demand almost equals total fleet
+capacity, almost every vehicle must leave completely full, so the repair
+fills vehicles one at a time with a subset of customers whose demands sum
+as close to the capacity as possible (a small dynamic-programming table
+over the integer demands), with a lower bound making sure the remaining
+customers still fit into the remaining vehicles.
 
 Complexity: everything here is heuristic, not exact. One 2-opt pass over a
 route of length L costs O(L²) route evaluations and passes repeat until no
@@ -247,6 +305,10 @@ GP uses expression trees with subtree crossover and mutation. GEP is a
 separate framework: a linear genome with a head (functions or terminals)
 and a tail (terminals only), decoded as a Karva K-expression; its operators
 are point mutation and one-/two-point crossover on the flat gene string.
+The decoder is the heart of GEP — it reads the linear genome left to right
+and attaches children level by level, ignoring leftover symbols:
+
+![GEP Karva decoder code](figures/code_gep_decoder.png)
 
 Final comparison (train and eval sets of 4 puzzles each, 20 generations,
 population 30, seeds 42–44), from `raw/gp_gep_comparison_runs.csv`:
@@ -260,6 +322,19 @@ population 30, seeds 42–44), from `raw/gp_gep_comparison_runs.csv`:
 | gep | 43 | 39956 | 4/4 | 4 | 4 | ((((1 + distance) * blocking) + 0.5) + 1) |
 | gep | 44 | 39956 | 4/4 | 4 | 4 | (((blocking * 1) / (blocking - 0.5)) + (abs(2) - free)) |
 
+![GP vs GEP eval fitness](figures/gp_gep_eval_fitness.png)
+
+![GP vs GEP expanded nodes](figures/gp_gep_expanded_nodes.png)
+
+The two charts make the "tie" visible: identical fitness (39956) and
+identical A* effort (4 expanded nodes total) in every run of both methods.
+What this comparison actually means: on this evaluation set the evolved
+heuristics guide A* essentially perfectly, so quality cannot separate GP
+from GEP here — the interesting differences are the shape of the evolved
+expressions and the evolution time. What it does not mean: that GP and GEP
+are equal in general. Four small puzzles are simply not enough pressure;
+a harder puzzle set would likely start separating the methods.
+
 Summary. Every run (both methods, all seeds) solved 4/4 evaluation puzzles
 with only 4 expanded nodes total, giving the identical best fitness 39956 —
 the evaluation set is too easy to separate the methods on quality.
@@ -271,11 +346,11 @@ puzzles these are observations, not general conclusions.
 
 ## 9. Results
 
-The main tables are in Sections 3 (Ackley), 4 (CVRP) and 8 (GP/GEP). The
+The main tables and figures are in Sections 3 (Ackley), 4 (CVRP) and 8
+(GP/GEP); the committed report figures live under `report/figures/`. The
 raw per-run rows live under `results/final_experiments/raw/` (126 CVRP
 rows, 21 Ackley rows, 6 GP/GEP rows), the aggregated tables under
-`results/final_experiments/summary/`, and the generated markdown tables and
-PNG charts (best cost, gap, runtime, Ackley values, GP/GEP fitness) under
+`results/final_experiments/summary/`, and additional generated assets under
 `results/final_experiments/report_assets/`. The execution manifest
 (`final_execution_manifest.json`) records what ran, with which budgets, and
 how long it took.
@@ -345,9 +420,31 @@ and staged workflow.
 - Print/validate the final plan:
   `python scripts/print_final_experiment_plan.py --require-official-data`
 - Full final run (resumable): `python scripts/run_final_experiments.py`
+- Report figures: `python scripts/generate_report_figures.py`, then
+  `python scripts/export_report_pdf.py` for this PDF
 - Report facts: `python scripts/extract_report_numbers.py`
 - All generated results stay under `results/final_experiments/` and are not
   committed to Git.
+
+The final runner is what makes the experiments reproducible in practice:
+it validates the plan and the official data before anything runs, executes
+each part through the same Python functions the tests use, writes one CSV
+row per run with its seed/budget/timeout, and skips already-finished raw
+files — when the vehicle-count repair changed, only X-n101-k25 had to be
+rerun while the other five instances were reused untouched:
+
+![Final experiment runner code](figures/code_final_runner.png)
+
+The submission audit output below is the real terminal output of the audit
+script on this repository — 28 checks covering files, row counts,
+feasibility, the report, and forbidden artifacts:
+
+![Submission audit output](figures/terminal_audit_pass.png)
+
+And the extracted report numbers, printed straight from the final CSVs
+(the same numbers used in the tables above):
+
+![Final result numbers](figures/terminal_final_rows.png)
 
 ## 14. Conclusion
 
