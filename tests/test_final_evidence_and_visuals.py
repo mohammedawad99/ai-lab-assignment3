@@ -94,3 +94,20 @@ def test_no_full_results_or_official_data_committed():
                    for p in tracked)
     assert not any(p.endswith(".vrp") and p.startswith("data/official_cvrp/")
                    for p in tracked)
+
+
+def test_bnb_report_claims_match_evidence():
+    # the report's B&B/LDS numbers must be backed by the committed evidence
+    import csv
+    text = REPORT_MD.read_text()
+    with open(EVIDENCE / "cvrp_algorithm_mean_gaps.csv", newline="") as f:
+        by_algo = {r["algorithm"]: r for r in csv.DictReader(f)}
+    bnb, base = by_algo["cvrp_bnb_lds"], by_algo["baseline"]
+    instances = [k for k in bnb if k not in ("algorithm", "mean_best_gap_percent")]
+    beats = sum(1 for i in instances if float(bnb[i]) < float(base[i]) - 1e-9)
+    mean = sum(float(bnb[i]) for i in instances) / len(instances)
+    assert f"{mean:.2f}%" in text
+    assert f"{beats}/6" in text
+    # the small-instance claims must be true in the evidence, not just prose
+    assert float(bnb["P-n16-k8"]) < 0.5
+    assert float(bnb["E-n22-k4"]) < 0.5

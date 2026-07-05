@@ -1,19 +1,19 @@
 Stage 10-C final rerun summary
 
 == CVRP: best feasible gap per instance (old evidence -> new rerun) ==
-  P-n16-k8: 0.43% -> 0.30% (-0.14) IMPROVED [cvrp_sa]
+  P-n16-k8: 0.30% -> 0.30% (+0.00) same [cvrp_sa]
   E-n22-k4: 0.07% -> 0.07% (+0.00) same [cvrp_sa]
   A-n32-k5: 0.39% -> 0.39% (+0.00) same [cvrp_alns]
-  A-n80-k10: 4.03% -> 3.02% (-1.01) IMPROVED [cvrp_alns]
-  X-n101-k25: 25.45% -> 24.20% (-1.26) IMPROVED [cvrp_ga_island]
+  A-n80-k10: 3.02% -> 3.02% (+0.00) same [cvrp_alns]
+  X-n101-k25: 24.20% -> 24.20% (+0.00) same [cvrp_ga_island]
   M-n200-k17: 5.99% -> 5.99% (+0.00) same [cvrp_alns]
-  improved: P-n16-k8, A-n80-k10, X-n101-k25; regressed: none
+  improved: none; regressed: none
 
 == CVRP: algorithm mean of best-of-seeds gaps ==
   baseline: mean 8.703% (beats baseline on 0/6: -)
   cvrp_aco: mean 7.558% (beats baseline on 4/6: P-n16-k8, E-n22-k4, A-n32-k5, X-n101-k25)
   cvrp_alns: mean 5.798% (beats baseline on 6/6: P-n16-k8, E-n22-k4, A-n32-k5, A-n80-k10, X-n101-k25, M-n200-k17)
-  cvrp_bnb_lds: mean 8.703% (beats baseline on 0/6: -)
+  cvrp_bnb_lds: mean 7.765% (beats baseline on 2/6: P-n16-k8, E-n22-k4)
   cvrp_ga_island: mean 7.275% (beats baseline on 5/6: P-n16-k8, E-n22-k4, A-n32-k5, X-n101-k25, M-n200-k17)
   cvrp_sa: mean 6.740% (beats baseline on 4/6: P-n16-k8, E-n22-k4, A-n32-k5, X-n101-k25)
   cvrp_tabu: mean 8.092% (beats baseline on 5/6: P-n16-k8, E-n22-k4, A-n32-k5, A-n80-k10, X-n101-k25)

@@ -29,8 +29,10 @@
       "mutation_rate": 0.3
     },
     "bnb_lds": {
-      "changed": false,
-      "reason": "No safe low-risk improvement found: a tighter lower bound risks cutting the true optimum, and the incumbent already comes from the strong multi-stage baseline. Left unchanged."
+      "small_instance_max_customers": 25,
+      "small_max_discrepancy": 15,
+      "small_max_nodes": 2000000,
+      "note": "Stage 10-F small-instance mode: instances with at most 25 customers get a much deeper discrepancy budget (still timeout-capped, still falls back to the incumbent). Measured effect: P-n16-k8 2.65% -> 0.30% and E-n22-k4 3.34% -> 0.07%, both in about a second. A-n32-k5 stays at baseline even at depth 12 (tested and rejected there), and larger instances keep the original settings. The threshold is by customer count, not instance names."
     }
   },
   "alns_policy": {
@@ -48,7 +50,7 @@
       "skipped_existing": false,
       "budget": 300,
       "timeout_sec": 30,
-      "elapsed_time": 12.547038554999745
+      "elapsed_time": 12.36230999899999
     },
     {
       "instance": "E-n22-k4",
@@ -57,7 +59,7 @@
       "skipped_existing": false,
       "budget": 300,
       "timeout_sec": 30,
-      "elapsed_time": 10.350906089995988
+      "elapsed_time": 13.603459113997815
     },
     {
       "instance": "A-n32-k5",
@@ -66,7 +68,7 @@
       "skipped_existing": false,
       "budget": 500,
       "timeout_sec": 60,
-      "elapsed_time": 20.534239738997712
+      "elapsed_time": 21.360879280000518
     },
     {
       "instance": "A-n80-k10",
@@ -75,7 +77,7 @@
       "skipped_existing": false,
       "budget": 800,
       "timeout_sec": 120,
-      "elapsed_time": 96.94281993000186
+      "elapsed_time": 98.34700270200119
     },
     {
       "instance": "X-n101-k25",
@@ -84,7 +86,7 @@
       "skipped_existing": false,
       "budget": 1000,
       "timeout_sec": 180,
-      "elapsed_time": 157.28247927600023
+      "elapsed_time": 157.98952551899856
     },
     {
       "instance": "M-n200-k17",
@@ -93,7 +95,7 @@
       "skipped_existing": false,
       "budget": 1200,
       "timeout_sec": 300,
-      "elapsed_time": 648.049764686999
+      "elapsed_time": 631.2191461500042
     }
   ],
   "ackley_run_info": {
@@ -112,8 +114,8 @@
   "rushhour_hard_info": {
     "output_dir": "results/final_experiments/rushhour_hard",
     "rows": 6,
-    "skipped_existing": false,
-    "elapsed_time": 380.16238409499783,
+    "skipped_existing": true,
+    "elapsed_time": 0.0,
     "config": "configs/rushhour_hard_benchmark.json"
   },
   "aggregation_info": {

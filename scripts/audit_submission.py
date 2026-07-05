@@ -100,6 +100,34 @@ def main():
         check("report covers seed robustness",
               "cvrp_seed_gap_boxplots.png" in text)
 
+        # B&B/LDS report-vs-evidence consistency (added after Stage 10-H
+        # found the report ahead of the committed evidence)
+        mean_gaps_path = REPO_ROOT / "report" / "evidence" / "cvrp_algorithm_mean_gaps.csv"
+        all_summary_path = REPO_ROOT / "report" / "evidence" / "cvrp_all_summary.csv"
+        if mean_gaps_path.exists() and all_summary_path.exists():
+            by_algo = {r["algorithm"]: r for r in count_data_rows(mean_gaps_path)}
+            bnb = by_algo.get("cvrp_bnb_lds")
+            base = by_algo.get("baseline")
+            if bnb and base:
+                instances = [k for k in bnb
+                             if k not in ("algorithm", "mean_best_gap_percent")]
+                beats = sum(1 for i in instances
+                            if float(bnb[i]) < float(base[i]) - 1e-9)
+                # recompute the mean from the per-instance values so the
+                # 3-decimal stored field cannot cause a rounding mismatch
+                mean = sum(float(bnb[i]) for i in instances) / len(instances)
+                mean_text = f"{mean:.2f}%"
+                check("report B&B mean gap matches evidence",
+                      mean_text in text, mean_text)
+                check("report B&B beats-baseline count matches evidence",
+                      f"{beats}/6" in text, f"evidence says {beats}/6")
+                summary_bnb = {r["instance"]: float(r["best_gap_percent"])
+                               for r in count_data_rows(all_summary_path)
+                               if r["algorithm"] == "cvrp_bnb_lds"}
+                consistent = all(abs(summary_bnb[i] - float(bnb[i])) < 0.01
+                                 for i in instances if i in summary_bnb)
+                check("B&B evidence CSVs agree with each other", consistent)
+
     # result files and row counts
     if args.check_results:
         for rel in RESULT_FILES:
