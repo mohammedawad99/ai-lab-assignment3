@@ -1,10 +1,18 @@
 """Stage 12-A: the unified executable entry point and run wrappers."""
 
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_a3():
+    spec = importlib.util.spec_from_file_location("a3_module", REPO_ROOT / "a3.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def run_a3(*args):
@@ -55,6 +63,49 @@ def test_readme_documents_the_entrypoint():
     text = (REPO_ROOT / "README.md").read_text()
     assert "a3.py" in text
     assert "Executable / run commands" in text
+
+
+# ---- Stage 12-D2: frozen (PyInstaller) mode compatibility ----
+
+def test_project_root_in_frozen_dist_layout(monkeypatch, tmp_path):
+    # dist/a3.exe must resolve the project root to the parent of dist/
+    a3 = load_a3()
+    fake_root = tmp_path / "ai-lab-assignment3"
+    (fake_root / "dist").mkdir(parents=True)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(fake_root / "dist" / "a3.exe"))
+    assert a3.project_root() == fake_root
+
+
+def test_project_root_unfrozen_is_repo_root():
+    a3 = load_a3()
+    assert a3.project_root() == REPO_ROOT
+
+
+def test_frozen_runner_never_returns_the_exe(monkeypatch, tmp_path):
+    a3 = load_a3()
+    fake_root = tmp_path / "proj"
+    (fake_root / "dist").mkdir(parents=True)
+    exe = fake_root / "dist" / "a3.exe"
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(exe))
+    runner = a3.find_python_runner(fake_root)  # no .venv there -> fallback
+    assert str(exe) not in runner
+    assert runner  # some python command is always returned
+
+
+def test_runner_prefers_project_venv():
+    a3 = load_a3()
+    runner = a3.find_python_runner(REPO_ROOT)
+    assert runner == [str(REPO_ROOT / ".venv" / "bin" / "python")] or \
+        runner == [sys.executable]
+
+
+def test_report_info_paths_use_project_root():
+    # the module-level REPO_ROOT (used by report-info) must be the repo root
+    a3 = load_a3()
+    assert a3.REPO_ROOT == REPO_ROOT
+    assert (a3.REPO_ROOT / "report" / "assignment3_report.pdf").exists()
 
 
 def test_no_generated_build_artifacts_committed():

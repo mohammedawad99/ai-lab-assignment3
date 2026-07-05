@@ -13,11 +13,40 @@ scripts/ (no algorithm logic lives here). Run from the repository root:
 """
 
 import argparse
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent
+
+def project_root() -> Path:
+    """Repository root, correct both for `python a3.py` and for a frozen
+    PyInstaller executable (dist/a3.exe -> the parent of dist/)."""
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve().parent
+        return exe_dir.parent if exe_dir.name == "dist" else exe_dir
+    return Path(__file__).resolve().parent
+
+
+REPO_ROOT = project_root()
+
+
+def find_python_runner(root: Path) -> list[str]:
+    """Command prefix that runs a real Python interpreter for the delegated
+    repository scripts. A frozen executable must never use sys.executable
+    (that would re-invoke a3.exe with a script path as its argument)."""
+    venv = (root / ".venv" / "Scripts" / "python.exe" if os.name == "nt"
+            else root / ".venv" / "bin" / "python")
+    if venv.exists():
+        return [str(venv)]
+    if not getattr(sys, "frozen", False):
+        return [sys.executable]
+    if os.name == "nt":
+        if shutil.which("py"):
+            return ["py", "-3"]
+        return ["python"]
+    return ["python3"]
 
 
 def run(command_args):
@@ -28,7 +57,7 @@ def run(command_args):
 
 
 def python_script(*args):
-    return [sys.executable] + [str(a) for a in args]
+    return find_python_runner(REPO_ROOT) + [str(a) for a in args]
 
 
 def cmd_sanity(_args):
