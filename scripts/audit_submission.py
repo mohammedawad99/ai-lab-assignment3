@@ -18,6 +18,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_FILES = [
     "README.md",
     "requirements.txt",
+    # executable-runner compliance (Stage 12-A)
+    "a3.py",
+    "run_a3.sh",
+    "run_a3.bat",
     "report/assignment3_report.md",
     "configs/final_experiment_plan.json",
     "data/cvrp_bks.csv",
@@ -180,6 +184,20 @@ def main():
         if pdf_path.exists():
             check("pdf size > 10 KB", pdf_path.stat().st_size > 10_000,
                   f"{pdf_path.stat().st_size} bytes")
+
+    # executable-runner compliance (Stage 12-A)
+    readme = REPO_ROOT / "README.md"
+    if readme.exists():
+        readme_text = readme.read_text()
+        check("README documents the executable run commands",
+              "Executable / run commands" in readme_text
+              and "a3.py" in readme_text)
+    import subprocess as sp
+    tracked = sp.run(["git", "ls-files"], capture_output=True, text=True,
+                     cwd=REPO_ROOT).stdout.splitlines()
+    check("no dist/build binaries tracked",
+          not any(p.startswith(("dist/", "build/")) or p.endswith(".exe")
+                  or p.endswith(".spec") for p in tracked))
 
     # report-vs-evidence consistency gate (Stage 11-F)
     import subprocess

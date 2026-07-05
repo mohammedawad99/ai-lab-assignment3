@@ -23,3 +23,8 @@ data/official_cvrp/*.vrp
 .DS_Store
 .idea/
 .vscode/
+
+# PyInstaller build outputs (optional executable packaging)
+dist/
+build/
+*.spec

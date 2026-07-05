@@ -9,9 +9,28 @@ Two parts:
 - **Part B — Generative AI:** use GP and GEP to evolve improved Rush Hour heuristics,
   evaluated by running A* with the candidate heuristic.
 
+## Executable / run commands
+
+The repository is a Python project; `a3.py` (with the `run_a3.sh` /
+`run_a3.bat` wrappers) is the executable entry point. Optional PyInstaller
+scripts can build a platform-specific executable. Official CVRP `.vrp`
+files are user-provided and intentionally not committed; generated results
+stay local under `results/` and are not committed.
+
+| Purpose | Command | Notes |
+| --- | --- | --- |
+| Show help | `python a3.py --help` | or `./run_a3.sh` / `run_a3.bat` |
+| Run sanity check | `python a3.py sanity` | 80.64 baseline on the tiny example |
+| Run audit | `python a3.py audit` | consistency gate + submission audit |
+| Run tests | `python a3.py test` | full pytest suite |
+| Run CVRP final experiments | `python scripts/run_final_experiments.py --tuned-cvrp configs/tuned_cvrp_settings.json --rushhour-hard configs/rushhour_hard_benchmark.json` | needs official `.vrp` files under `data/official_cvrp/` |
+| Run Rush Hour hard benchmark | `python scripts/run_gp_gep_hard_benchmark.py --puzzles examples/rushhour_hard_eval.txt --seeds 42 43 44` | committed summary: `python a3.py rushhour-hard-summary` |
+| Build optional executable (Windows) | `scripts\build_exe_windows.bat` | needs PyInstaller; builds `dist\a3.exe`, not committed |
+| Build optional executable (Unix) | `./scripts/build_exe_unix.sh` | needs PyInstaller; builds `dist/a3`, not committed |
+
 ## Status
 
-Stage 9-C2 — visual final report (Markdown + PDF with figures) under `report/`, submission audit in place.
+Stage 12-A — unified executable entry point (`a3.py` + wrappers) on top of the audited final report and evidence under `report/`.
 
 Report figures live under `report/figures/` and the visual PDF can be
 regenerated with:
