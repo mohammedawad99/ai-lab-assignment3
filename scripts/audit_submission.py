@@ -181,6 +181,15 @@ def main():
             check("pdf size > 10 KB", pdf_path.stat().st_size > 10_000,
                   f"{pdf_path.stat().st_size} bytes")
 
+    # report-vs-evidence consistency gate (Stage 11-F)
+    import subprocess
+    gate = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "verify_report_matches_csv.py")],
+        capture_output=True, text=True, cwd=REPO_ROOT)
+    check("report matches evidence CSVs (verify_report_matches_csv)",
+          gate.returncode == 0,
+          gate.stdout.strip().splitlines()[-1] if gate.stdout else "no output")
+
     # forbidden root-level files/dirs
     for name in FORBIDDEN:
         check(f"forbidden absent: {name}", not (REPO_ROOT / name).exists())

@@ -21,7 +21,11 @@ both Genetic Programming (GP) and Gene Expression Programming (GEP), where
 every candidate heuristic is judged by actually running A* with it.
 
 All stochastic runs use the fixed seeds 42, 43 and 44 from the final
-experiment plan, so every number below is reproducible.
+experiment plan, so every number below is reproducible. This 3-seed final
+run is the canonical source of every headline table in this report; the
+only 8-seed numbers are in the separate robustness study (Section 4.3,
+seeds 42–49), which is labeled as such and is not the source of any
+headline value.
 
 The final version of the project contains four layers on top of the first
 complete run: a controlled tuning pass (validated on all six instances
