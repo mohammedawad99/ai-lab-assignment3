@@ -11,8 +11,10 @@ import time
 import numpy as np
 
 from src.cvrp.baseline import build_multistage_baseline
+from src.cvrp.candidate_lists import build_candidate_lists
 from src.cvrp.cost import solution_cost
 from src.cvrp.distance import build_distance_matrix
+from src.cvrp.local_search import improve_solution_advanced
 from src.cvrp.model import CVRPInstance, CVRPSolution
 from src.cvrp.solvers.neighborhood import clone_routes
 from src.cvrp.solvers.result import CVRPSolverResult
@@ -206,7 +208,11 @@ def run_cvrp_ga_island(instance: CVRPInstance, generations: int = 100,
                        seed: int = 42, timeout_sec: float = 10.0,
                        crossover_rate: float = 0.8, mutation_rate: float = 0.15,
                        migration_interval: int = 20,
-                       migrants: int = 1) -> CVRPSolverResult:
+                       migrants: int = 1,
+                       advanced_local_search: bool = False,
+                       local_search_every: int = 10,
+                       advanced_max_passes: int = 1,
+                       candidate_list_k: int | None = None) -> CVRPSolverResult:
     start_elapsed = time.perf_counter()
     start_cpu = time.process_time()
 
@@ -214,6 +220,12 @@ def run_cvrp_ga_island(instance: CVRPInstance, generations: int = 100,
     baseline = build_multistage_baseline(instance).solution
     initial_cost = baseline.cost
     best = CVRPSolution(routes=clone_routes(baseline.routes), cost=baseline.cost)
+
+    # Stage 11-B: optional memetic step — polish the best solution every few
+    # generations and reinject its chromosome into island 0
+    neighbors = None
+    if advanced_local_search and candidate_list_k is not None:
+        neighbors = build_candidate_lists(distance_matrix, k=candidate_list_k)
 
     # one generator per island keeps islands independent and reproducible
     island_rngs = [np.random.default_rng(seed + i) for i in range(islands)]
@@ -249,6 +261,17 @@ def run_cvrp_ga_island(instance: CVRPInstance, generations: int = 100,
                 solution = split_giant_tour(instance, island_best, distance_matrix)
                 if solution is not None:
                     best = solution
+
+        if advanced_local_search and gen % local_search_every == 0 and \
+                validate_solution(instance, best).feasible:
+            polished = improve_solution_advanced(
+                instance, best, distance_matrix, neighbors=neighbors,
+                max_passes=advanced_max_passes)
+            if polished.cost < best.cost - 1e-9 and \
+                    validate_solution(instance, polished).feasible:
+                best = polished
+                # reinject the polished chromosome, replacing the newest child
+                populations[0][-1] = chromosome_from_solution(best)
 
         if migration_interval > 0 and gen % migration_interval == 0:
             populations = migrate_ring(populations, distance_matrix, instance, migrants)

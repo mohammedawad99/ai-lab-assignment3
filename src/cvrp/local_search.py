@@ -89,12 +89,14 @@ def improve_route_2opt_full(route: list[int], distance_matrix) -> list[int]:
             return best
 
 
-def improve_solution_2opt(solution: CVRPSolution, distance_matrix) -> CVRPSolution:
+def improve_solution_2opt(solution: CVRPSolution, distance_matrix,
+                          neighbors=None) -> CVRPSolution:
     """Run 2-opt inside every used route. Returns a new solution."""
     routes = []
     for route in solution.routes:
         if is_used_route(route):
-            routes.append(improve_route_2opt(route, distance_matrix))
+            routes.append(improve_route_2opt(route, distance_matrix,
+                                             neighbors=neighbors))
         else:
             routes.append(list(route))
     improved = CVRPSolution(routes=routes)
@@ -156,6 +158,232 @@ def relocate_best_improvement_pass(instance: CVRPInstance, solution: CVRPSolutio
     improved = CVRPSolution(routes=routes)
     improved.cost = solution_cost(improved, distance_matrix)
     return improved
+
+
+# ---------- advanced moves (Stage 11-B) ----------
+
+def _neighbor_sets(neighbors):
+    """Per-node membership sets for fast candidate filtering, or None."""
+    if neighbors is None:
+        return None
+    return [set(near) for near in neighbors]
+
+
+def swap_best_improvement_pass(instance: CVRPInstance, solution: CVRPSolution,
+                               distance_matrix, neighbors=None) -> CVRPSolution:
+    """Swap single customers between two routes while the best swap improves
+    the cost. Delta uses only the six changed edges; capacity is checked for
+    both routes. Deterministic scan order (route a, pos i, route b, pos j),
+    strict < keeps the first best move on ties."""
+    d = distance_matrix
+    depot = instance.depot_id
+    routes = [list(route) for route in solution.routes]
+    near_sets = _neighbor_sets(neighbors)
+
+    while True:
+        loads = [route_load(instance, route) for route in routes]
+        best_delta = -EPS
+        best_move = None  # (a, i, b, j)
+        for a in range(len(routes)):
+            route_a = routes[a]
+            for i in range(1, len(route_a) - 1):
+                u = route_a[i]
+                if u == depot:
+                    continue
+                demand_u = instance.demands.get(u, 0.0)
+                prev_u, next_u = route_a[i - 1], route_a[i + 1]
+                remove_u = d[prev_u][u] + d[u][next_u]
+                for b in range(a + 1, len(routes)):
+                    route_b = routes[b]
+                    for j in range(1, len(route_b) - 1):
+                        v = route_b[j]
+                        if v == depot:
+                            continue
+                        if near_sets is not None and \
+                                v not in near_sets[u] and u not in near_sets[v]:
+                            continue
+                        demand_v = instance.demands.get(v, 0.0)
+                        if loads[a] - demand_u + demand_v > instance.capacity:
+                            continue
+                        if loads[b] - demand_v + demand_u > instance.capacity:
+                            continue
+                        prev_v, next_v = route_b[j - 1], route_b[j + 1]
+                        delta = (d[prev_u][v] + d[v][next_u] - remove_u
+                                 + d[prev_v][u] + d[u][next_v]
+                                 - d[prev_v][v] - d[v][next_v])
+                        if delta < best_delta:
+                            best_delta = delta
+                            best_move = (a, i, b, j)
+        if best_move is None:
+            break
+        a, i, b, j = best_move
+        routes[a][i], routes[b][j] = routes[b][j], routes[a][i]
+
+    improved = CVRPSolution(routes=routes)
+    improved.cost = solution_cost(improved, distance_matrix)
+    return improved
+
+
+def or_opt_pass(instance: CVRPInstance, solution: CVRPSolution, distance_matrix,
+                segment_lengths=(2, 3), neighbors=None) -> CVRPSolution:
+    """Relocate short consecutive customer segments (forward orientation only)
+    within a route or to another route, best improvement until no move is left.
+    Inter-route moves check the target route's capacity."""
+    d = distance_matrix
+    routes = [list(route) for route in solution.routes]
+    near_sets = _neighbor_sets(neighbors)
+
+    while True:
+        loads = [route_load(instance, route) for route in routes]
+        best_delta = -EPS
+        best_move = None  # (a, i, length, b, pos)
+        for a, route_a in enumerate(routes):
+            for length in segment_lengths:
+                for i in range(1, len(route_a) - length):
+                    segment = route_a[i:i + length]
+                    if any(node == instance.depot_id for node in segment):
+                        continue
+                    first, last = segment[0], segment[-1]
+                    prev_a, next_a = route_a[i - 1], route_a[i + length]
+                    gain = (d[prev_a][first] + d[last][next_a]
+                            - d[prev_a][next_a])
+                    segment_demand = sum(instance.demands.get(c, 0.0)
+                                         for c in segment)
+                    allowed = None
+                    if near_sets is not None:
+                        allowed = near_sets[first] | near_sets[last]
+                        allowed.add(instance.depot_id)
+                    for b, route_b in enumerate(routes):
+                        if b != a and loads[b] + segment_demand > instance.capacity:
+                            continue
+                        for pos in range(1, len(route_b)):
+                            if b == a and i <= pos <= i + length:
+                                continue  # inside or right at the removed span
+                            prev_b, next_b = route_b[pos - 1], route_b[pos]
+                            if allowed is not None and prev_b not in allowed \
+                                    and next_b not in allowed:
+                                continue
+                            extra = (d[prev_b][first] + d[last][next_b]
+                                     - d[prev_b][next_b])
+                            delta = extra - gain
+                            if delta < best_delta:
+                                best_delta = delta
+                                best_move = (a, i, length, b, pos)
+        if best_move is None:
+            break
+        a, i, length, b, pos = best_move
+        segment = routes[a][i:i + length]
+        del routes[a][i:i + length]
+        if b == a and pos > i:
+            pos -= length
+        routes[b][pos:pos] = segment
+
+    improved = CVRPSolution(routes=routes)
+    improved.cost = solution_cost(improved, distance_matrix)
+    return improved
+
+
+def two_opt_star_pass(instance: CVRPInstance, solution: CVRPSolution,
+                      distance_matrix, neighbors=None) -> CVRPSolution:
+    """2-opt* tail exchange: cut two routes and swap their tails, so
+    (a0..ai, a_next..) and (b0..bj, b_next..) become (a0..ai, b_next..) and
+    (b0..bj, a_next..). Only the two cut edges change, and every customer
+    stays exactly once. Capacity is checked with prefix loads."""
+    d = distance_matrix
+    routes = [list(route) for route in solution.routes]
+    near_sets = _neighbor_sets(neighbors)
+
+    def prefix_loads(route):
+        loads = [0.0]
+        for node in route[1:-1]:
+            loads.append(loads[-1] + instance.demands.get(node, 0.0))
+        return loads  # loads[i] = demand of route[1..i]
+
+    while True:
+        best_delta = -EPS
+        best_move = None  # (a, i, b, j)
+        for a in range(len(routes)):
+            route_a = routes[a]
+            if len(route_a) < 3:
+                continue
+            pref_a = prefix_loads(route_a)
+            total_a = pref_a[-1]
+            for b in range(a + 1, len(routes)):
+                route_b = routes[b]
+                if len(route_b) < 3:
+                    continue
+                pref_b = prefix_loads(route_b)
+                total_b = pref_b[-1]
+                for i in range(0, len(route_a) - 1):
+                    a_end, a_next = route_a[i], route_a[i + 1]
+                    cut_a = d[a_end][a_next]
+                    head_a = pref_a[i] if i < len(pref_a) else total_a
+                    for j in range(0, len(route_b) - 1):
+                        b_end, b_next = route_b[j], route_b[j + 1]
+                        if near_sets is not None \
+                                and b_next not in near_sets[a_end] \
+                                and a_next not in near_sets[b_end] \
+                                and a_end != 0 and b_end != 0:
+                            continue
+                        head_b = pref_b[j] if j < len(pref_b) else total_b
+                        if head_a + (total_b - head_b) > instance.capacity:
+                            continue
+                        if head_b + (total_a - head_a) > instance.capacity:
+                            continue
+                        delta = (d[a_end][b_next] + d[b_end][a_next]
+                                 - cut_a - d[b_end][b_next])
+                        if delta < best_delta:
+                            best_delta = delta
+                            best_move = (a, i, b, j)
+        if best_move is None:
+            break
+        a, i, b, j = best_move
+        route_a, route_b = routes[a], routes[b]
+        routes[a] = route_a[:i + 1] + route_b[j + 1:]
+        routes[b] = route_b[:j + 1] + route_a[i + 1:]
+
+    improved = CVRPSolution(routes=routes)
+    improved.cost = solution_cost(improved, distance_matrix)
+    return improved
+
+
+def improve_solution_advanced(instance: CVRPInstance, solution: CVRPSolution,
+                              distance_matrix, neighbors=None, max_passes=3,
+                              enable_relocate=True, enable_swap=True,
+                              enable_or_opt=True, enable_two_opt_star=True,
+                              validate_each_pass=False) -> CVRPSolution:
+    """Combined intensification: intra-route 2-opt plus the inter-route moves
+    (relocate, swap, Or-opt, 2-opt*), repeated until a full pass stops
+    improving or max_passes is reached. All moves preserve the customer
+    multiset and never open a new route, so feasibility is preserved; with
+    validate_each_pass=True (tests) that is asserted after every pass."""
+    current = CVRPSolution(routes=[list(route) for route in solution.routes])
+    current.cost = solution_cost(current, distance_matrix)
+
+    for _ in range(max_passes):
+        cost_before = current.cost
+        current = improve_solution_2opt(current, distance_matrix)
+        if enable_relocate:
+            current = relocate_best_improvement_pass(instance, current,
+                                                     distance_matrix,
+                                                     neighbors=neighbors)
+        if enable_swap:
+            current = swap_best_improvement_pass(instance, current,
+                                                 distance_matrix,
+                                                 neighbors=neighbors)
+        if enable_or_opt:
+            current = or_opt_pass(instance, current, distance_matrix,
+                                  neighbors=neighbors)
+        if enable_two_opt_star:
+            current = two_opt_star_pass(instance, current, distance_matrix,
+                                        neighbors=neighbors)
+        current = improve_solution_2opt(current, distance_matrix)
+        if validate_each_pass:
+            check = validate_solution(instance, current)
+            assert check.feasible, f"advanced pass broke feasibility: {check.errors}"
+        if current.cost >= cost_before - EPS:
+            break
+    return current
 
 
 # ---------- vehicle-count feasibility repair ----------

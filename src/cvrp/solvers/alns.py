@@ -14,7 +14,8 @@ from src.cvrp.baseline import build_multistage_baseline
 from src.cvrp.construction import route_load
 from src.cvrp.cost import solution_cost
 from src.cvrp.distance import build_distance_matrix
-from src.cvrp.local_search import improve_solution_2opt
+from src.cvrp.candidate_lists import build_candidate_lists
+from src.cvrp.local_search import improve_solution_2opt, improve_solution_advanced
 from src.cvrp.model import CVRPInstance, CVRPSolution
 from src.cvrp.solvers.result import CVRPSolverResult
 from src.cvrp.validate import validate_solution
@@ -292,7 +293,11 @@ def run_cvrp_alns(instance: CVRPInstance, iterations: int = 1000, seed: int = 42
                   max_removal_fraction: float = 0.3,
                   initial_temperature: float = 100.0, cooling_rate: float = 0.995,
                   reaction_rate: float = 0.2,
-                  enhanced_operators: bool = False) -> CVRPSolverResult:
+                  enhanced_operators: bool = False,
+                  advanced_local_search: bool = False,
+                  advanced_every: int = 25,
+                  advanced_max_passes: int = 2,
+                  candidate_list_k: int | None = None) -> CVRPSolverResult:
     start_elapsed = time.perf_counter()
     start_cpu = time.process_time()
 
@@ -300,6 +305,20 @@ def run_cvrp_alns(instance: CVRPInstance, iterations: int = 1000, seed: int = 42
     current = build_multistage_baseline(instance).solution
     initial_cost = current.cost
     best = copy_solution(current)
+
+    # Stage 11-B: optional advanced intensification (relocate/swap/Or-opt/2-opt*)
+    neighbors = None
+    if advanced_local_search and candidate_list_k is not None:
+        neighbors = build_candidate_lists(distance_matrix, k=candidate_list_k)
+
+    def intensify(solution):
+        polished = improve_solution_advanced(
+            instance, solution, distance_matrix, neighbors=neighbors,
+            max_passes=advanced_max_passes)
+        if polished.cost < solution.cost - 1e-9 and \
+                validate_solution(instance, polished).feasible:
+            return polished
+        return solution
 
     rng = np.random.default_rng(seed)
     destroy_operators = {
@@ -327,6 +346,7 @@ def run_cvrp_alns(instance: CVRPInstance, iterations: int = 1000, seed: int = 42
     temperature = initial_temperature
     convergence = []
     completed = 0
+    last_intensified = 0
 
     def record(iteration):
         row = {
@@ -367,6 +387,12 @@ def run_cvrp_alns(instance: CVRPInstance, iterations: int = 1000, seed: int = 42
                     if current.cost < best.cost - 1e-9:
                         best = copy_solution(current)
                         score = SCORE_NEW_BEST
+                        if advanced_local_search and \
+                                it - last_intensified >= advanced_every and \
+                                time.perf_counter() - start_elapsed < timeout_sec:
+                            best = intensify(best)
+                            current = copy_solution(best)
+                            last_intensified = it
                 elif rng.random() < math.exp(-delta / temperature):
                     current = candidate
                     score = SCORE_ACCEPTED
@@ -377,6 +403,9 @@ def run_cvrp_alns(instance: CVRPInstance, iterations: int = 1000, seed: int = 42
 
         if it % CONVERGENCE_EVERY == 0:
             record(it)
+
+    if advanced_local_search:
+        best = intensify(best)  # final polish, bounded by advanced_max_passes
 
     if not convergence or convergence[-1]["iteration"] != completed:
         record(completed)

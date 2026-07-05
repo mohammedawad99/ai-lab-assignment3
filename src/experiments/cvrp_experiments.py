@@ -127,23 +127,37 @@ def run_one_cvrp_algorithm(instance, instance_path, algorithm, seed, budget,
         budget_name = "iterations"
     elif algorithm == "ga_island":
         ga_cfg = tuned.get("ga_island", {})
+        # Stage 11-B advanced pass, gated by instance size (not by name):
+        # validation showed gains on large instances and a small regression
+        # on the tiny ones, so it only activates from min_customers up
+        ga_advanced = bool(ga_cfg.get("advanced_local_search", False)) and \
+            len(instance.customer_ids) >= int(ga_cfg.get("advanced_min_customers", 0))
         result = run_cvrp_ga_island(
             instance, generations=budget,
             population_size=int(ga_cfg.get("population_size", 12)),
             islands=int(ga_cfg.get("islands", 2)),
             mutation_rate=ga_cfg.get("mutation_rate", 0.15),
-            seed=seed, timeout_sec=timeout_sec)
+            seed=seed, timeout_sec=timeout_sec,
+            advanced_local_search=ga_advanced,
+            local_search_every=int(ga_cfg.get("local_search_every", 10)),
+            advanced_max_passes=int(ga_cfg.get("advanced_max_passes", 1)),
+            candidate_list_k=ga_cfg.get("candidate_list_k"))
         budget_name = "generations"
-    elif algorithm == "alns":
+    elif algorithm in ("alns", "alns_enhanced"):
+        adv_cfg = tuned.get("alns_advanced", {})
+        alns_advanced = bool(adv_cfg.get("advanced_local_search", False)) and \
+            len(instance.customer_ids) >= int(adv_cfg.get("min_customers", 0))
+        kwargs = dict(
+            advanced_local_search=alns_advanced,
+            advanced_every=int(adv_cfg.get("advanced_every", 25)),
+            advanced_max_passes=int(adv_cfg.get("advanced_max_passes", 2)),
+            candidate_list_k=adv_cfg.get("candidate_list_k"))
+        if algorithm == "alns_enhanced":
+            alns_cfg = tuned.get("alns", {})
+            kwargs.update(enhanced_operators=True,
+                          reaction_rate=alns_cfg.get("reaction_rate", 0.2))
         result = run_cvrp_alns(instance, iterations=budget, seed=seed,
-                               timeout_sec=timeout_sec)
-        budget_name = "iterations"
-    elif algorithm == "alns_enhanced":
-        alns_cfg = tuned.get("alns", {})
-        result = run_cvrp_alns(instance, iterations=budget, seed=seed,
-                               timeout_sec=timeout_sec,
-                               enhanced_operators=True,
-                               reaction_rate=alns_cfg.get("reaction_rate", 0.2))
+                               timeout_sec=timeout_sec, **kwargs)
         budget_name = "iterations"
     elif algorithm == "bnb_lds":
         bnb_cfg = tuned.get("bnb_lds", {})
