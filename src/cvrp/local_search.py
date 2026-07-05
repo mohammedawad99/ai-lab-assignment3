@@ -24,8 +24,58 @@ def two_opt_route(route: list[int], distance_matrix) -> list[list[int]]:
     return candidates
 
 
-def improve_route_2opt(route: list[int], distance_matrix) -> list[int]:
-    """Apply the best improving 2-opt move until no improvement is left."""
+def two_opt_route_delta(route: list[int], distance_matrix, neighbors=None):
+    """Best 2-opt move for a route using O(1) edge deltas.
+
+    Reversing route[i..j] replaces edges (a,b)=(route[i-1],route[i]) and
+    (c,d)=(route[j],route[j+1]) with (a,c) and (b,d); only those four edges
+    change, so delta = d[a][c] + d[b][d] - d[a][b] - d[c][d].
+
+    Returns (delta, i, j) for the best improving move, or None. Ties keep the
+    first (i, j) in scan order, the same order the full version scans in.
+
+    With neighbors (from candidate_lists.build_candidate_lists) only moves
+    whose new edge (a, c) connects a to one of its nearest nodes are scanned;
+    neighbors=None keeps the exact full neighborhood.
+    """
+    n = len(route)
+    best_delta, best_i, best_j = -EPS, -1, -1
+    for i in range(1, n - 2):
+        a, b = route[i - 1], route[i]
+        row_a, row_b = distance_matrix[a], distance_matrix[b]
+        d_ab = row_a[b]
+        near_a = None if neighbors is None else neighbors[a]
+        for j in range(i + 1, n - 1):
+            c, d = route[j], route[j + 1]
+            if near_a is not None and c not in near_a:
+                continue
+            delta = row_a[c] + row_b[d] - d_ab - distance_matrix[c][d]
+            if delta < best_delta:
+                best_delta, best_i, best_j = delta, i, j
+    if best_i < 0:
+        return None
+    return best_delta, best_i, best_j
+
+
+def improve_route_2opt(route: list[int], distance_matrix,
+                       neighbors=None) -> list[int]:
+    """Apply the best improving 2-opt move until no improvement is left.
+
+    Uses O(1) delta evaluation per candidate move (Stage 11-A); the previous
+    full-recomputation version is kept as improve_route_2opt_full.
+    """
+    best = list(route)
+    while True:
+        move = two_opt_route_delta(best, distance_matrix, neighbors=neighbors)
+        if move is None:
+            return best
+        _, i, j = move
+        best[i:j + 1] = best[i:j + 1][::-1]
+
+
+def improve_route_2opt_full(route: list[int], distance_matrix) -> list[int]:
+    """Reference implementation: builds every candidate route and recomputes
+    its full cost. Kept for the equivalence tests against improve_route_2opt."""
     best = list(route)
     best_cost = route_cost(best, distance_matrix)
     while True:
@@ -53,10 +103,13 @@ def improve_solution_2opt(solution: CVRPSolution, distance_matrix) -> CVRPSoluti
 
 
 def relocate_best_improvement_pass(instance: CVRPInstance, solution: CVRPSolution,
-                                   distance_matrix) -> CVRPSolution:
+                                   distance_matrix, neighbors=None) -> CVRPSolution:
     """Move single customers between routes while the best move improves the cost.
 
     Only capacity-feasible moves are considered. The input solution is not mutated.
+    With neighbors (candidate_lists.build_candidate_lists) a customer is only
+    tried at positions adjacent to one of its nearest nodes or the depot;
+    neighbors=None keeps the exact full neighborhood.
     """
     d = distance_matrix
     routes = [list(route) for route in solution.routes]
@@ -74,6 +127,10 @@ def relocate_best_improvement_pass(instance: CVRPInstance, solution: CVRPSolutio
                 prev_a, next_a = route_a[pos_a - 1], route_a[pos_a + 1]
                 # cost saved by taking the customer out of route a
                 gain = d[prev_a][customer] + d[customer][next_a] - d[prev_a][next_a]
+                near = None
+                if neighbors is not None:
+                    near = set(neighbors[customer])
+                    near.add(instance.depot_id)
 
                 for b, route_b in enumerate(routes):
                     if b == a:
@@ -82,6 +139,8 @@ def relocate_best_improvement_pass(instance: CVRPInstance, solution: CVRPSolutio
                         continue
                     for pos_b in range(1, len(route_b)):
                         prev_b, next_b = route_b[pos_b - 1], route_b[pos_b]
+                        if near is not None and prev_b not in near and next_b not in near:
+                            continue
                         extra = d[prev_b][customer] + d[customer][next_b] - d[prev_b][next_b]
                         delta = extra - gain
                         if delta < best_delta:
