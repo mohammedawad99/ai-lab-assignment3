@@ -27,6 +27,16 @@ EVIDENCE = REPO_ROOT / "report" / "evidence"
 INSTANCES = ["P-n16-k8", "E-n22-k4", "A-n32-k5", "A-n80-k10",
              "X-n101-k25", "M-n200-k17"]
 
+# bonus no-A* direct planner snapshots (Stage 12-C); copied only when the
+# local benchmark outputs exist
+DIRECT_COPIES = [
+    ("direct_gp_gep_runs.csv", "direct_gp_gep_runs.csv"),
+    ("direct_gp_gep_summary.csv", "direct_gp_gep_summary.csv"),
+    ("direct_manual_baselines.csv", "direct_manual_baselines.csv"),
+    ("direct_manual_summary.csv", "direct_manual_summary.csv"),
+    ("direct_planner_manifest.json", "direct_planner_manifest.json"),
+]
+
 COPIES = [
     ("summary/cvrp_all_summary.csv", "cvrp_all_summary.csv"),
     ("summary/ackley_d10_summary.csv", "ackley_d10_summary.csv"),
@@ -111,6 +121,15 @@ def main():
     if old.exists():
         old.unlink()
         print("removed superseded report/evidence/final_v2_summary.txt")
+
+    # bonus direct-planner snapshots
+    direct_dir = REPO_ROOT / "results" / "rushhour_direct"
+    for src, dst in DIRECT_COPIES:
+        if (direct_dir / src).exists():
+            shutil.copyfile(direct_dir / src, EVIDENCE / dst)
+            print(f"copied rushhour_direct/{src} -> report/evidence/{dst}")
+        else:
+            print(f"note: {direct_dir / src} missing, direct snapshot skipped")
 
 
 if __name__ == "__main__":

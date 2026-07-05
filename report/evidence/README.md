@@ -25,3 +25,18 @@ with the tuned settings plus the Stage 11 advanced local-search moves):
 The full generated outputs (raw per-run CSVs, solution files, extra assets)
 stay under `results/final_experiments/` locally and are not committed. The
 official CVRP `.vrp` files are user-provided data and are also not committed.
+
+## Bonus: direct no-A* planner evidence (Stage 12-C)
+
+- `direct_gp_gep_runs.csv` / `direct_gp_gep_summary.csv` — GP/GEP evolved
+  as DIRECT planners: a greedy policy rollout picks each move from the
+  evolved expression, with no A* anywhere in the benchmark
+- `direct_manual_baselines.csv` / `direct_manual_summary.csv` — random,
+  greedy red-distance and greedy blocker-depth policies under the same
+  rollout, for an honest comparison
+- `direct_planner_manifest.json` — benchmark setup (smoke:false,
+  seeds 42-44, population 30, generations 20, max_steps 120)
+
+The A*-guided hard benchmark above remains the main Part B result; the
+direct planner is the bonus exploratory experiment. Full outputs stay
+local under `results/rushhour_direct/`.

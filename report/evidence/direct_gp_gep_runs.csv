@@ -1,0 +1,7 @@
+method,seed,train_solved,train_puzzles,eval_solved,eval_puzzles,mean_steps_solved,total_repeated_states,runtime_seconds,best_fitness,expression_size,diversity,best_expression,error
+gp_direct,42,11,14,11,14,11.1,0,1793.20,120736.0,22,0.80,"((max(mobility, abs(blocker_depth)) / mobility) + (((max(1, red_distance) / mobility) + 1) + (((blocker_depth + blockers",
+gp_direct,43,11,14,11,14,17.5,0,1851.99,120060.0,10,0.77,((0.5 / log((blocker_depth + move_steps))) + (blocker_depth + blocker_depth)),
+gp_direct,44,9,14,9,14,11.6,0,1768.93,97758.0,1,0.13,blocker_depth,
+gep_direct,42,9,14,9,14,11.6,0,1674.34,97758.0,1,0.17,blocker_depth,
+gep_direct,43,9,14,9,14,11.6,0,1842.18,97758.0,1,0.07,blocker_depth,
+gep_direct,44,9,14,9,14,11.6,0,1678.26,97758.0,1,0.07,blocker_depth,

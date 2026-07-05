@@ -1,0 +1,18 @@
+{
+  "train_puzzles": "examples/rushhour_hard_eval.txt",
+  "eval_puzzles": "examples/rushhour_hard_eval.txt",
+  "train_count": 14,
+  "eval_count": 14,
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "population": 30,
+  "generations": 20,
+  "max_steps": 120,
+  "timeout_per_puzzle": 2.0,
+  "budget_per_individual": 8.0,
+  "smoke": false,
+  "note": "direct greedy policy rollout, no A* anywhere in this benchmark"
+}

@@ -355,6 +355,67 @@ def main():
         print("note: results/robustness raw CSV not found, "
               "seed boxplot figures not regenerated (committed PNGs kept)")
 
+    # ---- bonus: direct no-A* planner figures (from committed evidence) ----
+    evidence = REPO_ROOT / "report" / "evidence"
+    direct_runs_path = evidence / "direct_gp_gep_runs.csv"
+    if direct_runs_path.exists():
+        direct_runs = read_rows(direct_runs_path)
+        baselines = read_rows(evidence / "direct_manual_baselines.csv")
+        hard = read_rows(evidence / "rushhour_hard_gp_gep_summary.csv")
+        astar_best = max(int(r["solved"]) for r in hard
+                         if not r["name"].startswith("manual_"))
+
+        def best_solved(method):
+            return max(int(r["eval_solved"]) for r in direct_runs
+                       if r["method"] == method)
+
+        labels = ["random\n(direct)", "greedy\nred-dist", "greedy\nblocker-depth",
+                  "GEP direct\nbest", "GP direct\nbest", "A*-guided\n(reference)"]
+        values = [
+            int(next(r["eval_solved"] for r in baselines
+                     if r["method"] == "random_legal_move")),
+            int(next(r["eval_solved"] for r in baselines
+                     if r["method"] == "greedy_red_distance_move")),
+            int(next(r["eval_solved"] for r in baselines
+                     if r["method"] == "greedy_blocking_depth_move")),
+            best_solved("gep_direct"), best_solved("gp_direct"), astar_best,
+        ]
+        fig, ax = plt.subplots(figsize=(8.0, 4.2))
+        colors = ["#888888"] * 3 + ["#2c7fb8", "#2c7fb8", "#d95f0e"]
+        bars = ax.bar(range(len(labels)), values, color=colors)
+        for bar, value in zip(bars, values):
+            ax.annotate(f"{value}/14", (bar.get_x() + bar.get_width() / 2,
+                                        bar.get_height()),
+                        ha="center", va="bottom", fontsize=9)
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, fontsize=8)
+        ax.set_ylabel("hard puzzles solved (of 14)")
+        ax.set_title("Direct no-A* planners vs baselines "
+                     "(A*-guided shown only as reference)")
+        fig.tight_layout()
+        path = FIGURES / "rushhour_direct_solved_counts.png"
+        fig.savefig(path, dpi=150)
+        plt.close(fig)
+        created.append(path)
+
+        save_bar([f"{r['method'].replace('_direct', '')}\nseed {r['seed']}"
+                  for r in direct_runs],
+                 [float(r["best_fitness"]) for r in direct_runs],
+                 "Direct GP/GEP fitness by seed (GEP converges to blocker_depth)",
+                 "direct fitness", "rushhour_direct_gp_gep_fitness.png",
+                 value_fmt="{:.0f}")
+
+        step_rows = [r for r in direct_runs + baselines
+                     if r["mean_steps_solved"]]
+        save_bar([f"{r['method'].replace('_direct', '').replace('_move', '')}"
+                  f"\nseed {r['seed']}" for r in step_rows],
+                 [float(r["mean_steps_solved"]) for r in step_rows],
+                 "Direct rollout: mean moves on solved puzzles",
+                 "mean moves (solved only)",
+                 "rushhour_direct_steps_or_runtime.png", value_fmt="{:.1f}")
+    else:
+        print("note: direct-planner evidence missing, bonus figures skipped")
+
     # ---- code snippet figures (real source lines) ----
     render_text_image(extract_snippet("src/cvrp/local_search.py",
                                       "def build_routes_subset_sum_packing", 28),

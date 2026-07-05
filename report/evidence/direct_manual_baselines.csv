@@ -1,0 +1,4 @@
+method,seed,train_solved,train_puzzles,eval_solved,eval_puzzles,mean_steps_solved,total_repeated_states,runtime_seconds,best_fitness,expression_size,diversity,best_expression,error
+random_legal_move,42,,,7,14,48.7,1,0.45,,,,,
+greedy_blocking_depth_move,42,,,9,14,11.6,0,1.12,,,,,
+greedy_red_distance_move,42,,,4,14,60.5,91,0.93,,,,,

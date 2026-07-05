@@ -34,7 +34,8 @@ small-instance mode; a local-search performance pass (O(1) delta 2-opt)
 followed by advanced local-search moves (inter-route swap, Or-opt, 2-opt*,
 candidate-list neighborhoods) gated to the larger instances; and, on Part
 B, a measured 14-puzzle hard Rush Hour benchmark plus an 8-seed CVRP
-robustness analysis. The final rerun with all accepted settings improved
+robustness analysis and the optional no-A* bonus: GP/GEP evolved as direct
+planners (Section 8.2). The final rerun with all accepted settings improved
 the best CVRP gaps to 2.95% on A-n80-k10, 23.01% on X-n101-k25 and 5.51%
 on M-n200-k17 with no project-best regressions, and the Ackley results
 were left unchanged. All numbers in this report come from that final
@@ -602,6 +603,72 @@ and the results are not saturated like the old 4-puzzle set. (Numbers this
 close to the time caps can shift by a fraction of a percent between runs;
 the ordering has been stable.)
 
+### 8.2 Bonus: direct GP/GEP Rush Hour planner without A*
+
+The main Part B method evolves heuristics that are used *inside* A*. The
+assignment's bonus asks the opposite question: can GP/GEP act directly as
+the planner, with no A* at all? This subsection is that exploratory bonus —
+it does not replace the A*-guided result above.
+
+**How the direct planner works.** A policy expression is rolled out
+greedily: at each state the planner enumerates all legal moves, scores
+every move with the evolved expression (lower = better), applies the best
+one with a deterministic tie-break, and stops on solved, at 120 steps, or
+at a 2-second timeout. There is no open list, no f = g + h, no
+backtracking — and a visited-state set makes the policy prefer moves to
+unvisited states (revisits are counted and penalized in fitness). The code
+is `src/rushhour/direct_planner.py`; a test suite monkeypatches the A*
+solver to raise if it is ever called during direct planning.
+
+**Move features.** Instead of the three state features the A*-heuristics
+use, direct policies see eleven features of each candidate move: red-car
+distance and blockers/blocker-depth/free-exit cells *after* the move, the
+deltas of distance and blockers caused by the move, whether the moved
+vehicle is the red car and whether it moves toward the exit, the move
+length, the mobility (number of legal moves) of the resulting position,
+and a visited indicator for cycle avoidance
+(`src/rushhour/direct_features.py`).
+
+**Benchmark.** Same 14 hard puzzles, seeds 42–44, population 30, 20
+generations, identical rollout caps for every method. Three hand-written
+direct policies run under the *same* rollout as baselines, so the
+comparison is direct-vs-direct, not direct-vs-A*:
+
+| direct method | solved (best) | notes |
+| --- | --- | --- |
+| random legal move | 7/14 | seeded random walk |
+| greedy red-distance | 4/14 | oscillates (91 cycle fallbacks) |
+| greedy blocker-depth | 9/14 | strongest manual direct policy |
+| GEP direct | 9/14 (all seeds) | converges to `blocker_depth`, size 1 |
+| **GP direct** | **11/14** (seeds 42, 43; mean 10.3) | composite expressions, sizes 22/10/1 |
+| A*-guided evolved heuristic (reference) | 13/14 | not direct — shown for scale |
+
+![Direct planner solved counts](figures/rushhour_direct_solved_counts.png)
+
+![Direct GP/GEP fitness by seed](figures/rushhour_direct_gp_gep_fitness.png)
+
+GP's best direct policies (fitness 120736 and 120060, expression diversity
+0.77–0.80) combine `blocker_depth` with `mobility` and `red_distance`
+terms and solve 11/14 — a real improvement over the best hand-written
+direct policy (9/14). GEP is honestly less interesting here: all three
+seeds converged to the single terminal `blocker_depth` (fitness 97758,
+size 1), exactly rediscovering the best manual feature and tying it, never
+beating it. The parsimony pressure that kept GEP compact in the A*
+benchmark works against it in this richer feature space.
+
+![Direct rollout steps](figures/rushhour_direct_steps_or_runtime.png)
+
+**Honest conclusion.** The A*-guided approach remains clearly stronger
+(13/14 vs 11/14): A* has search memory and frontier management, while the
+greedy rollout commits to one move per state and can only avoid cycles,
+not recover from them. Per step, however, the direct planner is very cheap
+— it scores only the current legal moves (about a dozen boards) instead of
+expanding thousands of A* nodes, and solved puzzles take it 11–18 moves on
+average. The bonus stands as a positive exploratory result: evolution
+found a better direct policy than we could write by hand, and the
+no-search planner solves 11 of 14 measured-hard puzzles — but the main
+Part B result stays the A*-guided benchmark of Section 8.1.
+
 ## 9. Results
 
 The main tables and figures are in Sections 3 (Ackley), 4 (CVRP) and 8
@@ -720,6 +787,10 @@ and staged workflow.
   `python scripts/run_final_experiments.py --tuned-cvrp configs/tuned_cvrp_settings.json --rushhour-hard configs/rushhour_hard_benchmark.json`
 - Hard Rush Hour benchmark on its own:
   `python scripts/run_gp_gep_hard_benchmark.py --puzzles examples/rushhour_hard_eval.txt --seeds 42 43 44`
+- Direct no-A* planner bonus (Section 8.2):
+  `python scripts/run_gp_gep_direct_planner.py --seeds 42 43 44 --population 30 --generations 20`
+  (evidence snapshots: `report/evidence/direct_*.csv` and
+  `direct_planner_manifest.json`)
 - Old-vs-new comparison: `python scripts/extract_final_results_v3.py`
   (its output, `final_v3_summary.txt`, is the current final comparison
   summary and a copy is committed under `report/evidence/`)
@@ -783,7 +854,11 @@ search — a lesson the CVRP tuning then confirmed from the other direction.
 On the hard Rush Hour benchmark, both evolved frameworks beat the
 strongest manual heuristic by about 30% fewer A* expansions, while GP and
 GEP themselves remain honestly tied at the top with seed variance
-dominating. The main open improvements are full ejection chains for the
+dominating. The optional no-A* bonus adds one more genuine result: GP
+evolved as a direct greedy planner solves 11/14 hard puzzles — beating the
+best hand-written direct policy (9/14) — while remaining honestly weaker
+than the A*-guided search (13/14). The main open improvements are full
+ejection chains for the
 capacity-tight CVRP instances (the Stage 11 swap/Or-opt/2-opt* moves
 recovered only part of the X-n101-k25 gap), a stronger bound to extend
 B&B/LDS beyond 25 customers, and pushing the hard Rush Hour set until the

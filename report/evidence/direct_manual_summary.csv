@@ -1,0 +1,4 @@
+method,runs,best_eval_solved,mean_eval_solved,eval_puzzles,mean_runtime_seconds
+greedy_blocking_depth_move,1,9,9.0,14,1.1
+greedy_red_distance_move,1,4,4.0,14,0.9
+random_legal_move,1,7,7.0,14,0.5

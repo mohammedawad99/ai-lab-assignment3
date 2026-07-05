@@ -95,8 +95,11 @@ def cmd_rushhour_hard_summary(_args):
 
 
 def cmd_rushhour_direct(_args):
-    """Smoke-run the direct (no-A*) GP/GEP planner bonus; results local-only."""
-    return run(python_script("scripts/run_gp_gep_direct_planner.py", "--smoke"))
+    """Smoke-run the direct (no-A*) GP/GEP planner bonus; results local-only.
+    Writes to a separate smoke dir so it never overwrites the real benchmark
+    outputs under results/rushhour_direct/."""
+    return run(python_script("scripts/run_gp_gep_direct_planner.py", "--smoke",
+                             "--output-dir", "results/rushhour_direct_smoke"))
 
 
 COMMANDS = {

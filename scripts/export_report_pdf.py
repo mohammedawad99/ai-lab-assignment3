@@ -37,7 +37,7 @@ IMAGE_RE = re.compile(r"^!\[[^\]]*\]\(([^)]+)\)\s*$")
 
 KEY_TEXT = ["Assignment 3 Report", "Ackley", "CVRP", "Rush Hour", "GP", "GEP",
             "23.0063", "2.9466", "5.5139", "advanced local-search", "2-opt*",
-            "blocker_depth"]
+            "blocker_depth", "without A*", "11/14", "13/14", "120736"]
 
 
 def align_table(block):

@@ -35,6 +35,10 @@ REQUIRED_FILES = [
     "report/evidence/final_execution_manifest.json",
     "report/evidence/final_v3_summary.txt",
     "report/evidence/cvrp_seed_robustness_summary.csv",
+    # bonus no-A* direct planner evidence (Stage 12-C)
+    "report/evidence/direct_gp_gep_runs.csv",
+    "report/evidence/direct_manual_baselines.csv",
+    "report/evidence/direct_planner_manifest.json",
 ]
 
 # Stage 11-C project-best gaps that the report must state (they must also
@@ -107,6 +111,19 @@ def main():
               "cvrp_before_after_tuning.png" in text)
         check("report covers seed robustness",
               "cvrp_seed_gap_boxplots.png" in text)
+
+        # Stage 12-C: the direct no-A* bonus must be reported honestly
+        direct_manifest = REPO_ROOT / "report" / "evidence" / "direct_planner_manifest.json"
+        if direct_manifest.exists():
+            import json as _json
+            direct = _json.loads(direct_manifest.read_text())
+            check("direct bonus manifest is not smoke",
+                  direct.get("smoke") is False)
+            check("report covers the direct no-A* bonus",
+                  "without A*" in text and "11/14" in text
+                  and "9/14" in text and "13/14" in text)
+            check("report shows the direct bonus figure",
+                  "rushhour_direct_solved_counts.png" in text)
 
         # Stage 11: advanced local-search results must be in the report
         for value in STAGE11_BEST_GAPS:
