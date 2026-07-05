@@ -1,19 +1,20 @@
 """Genetic operators for linear GEP genomes."""
 
 from src.gep.genome import GEPGenome
-from src.gep.symbols import random_head_symbol, random_tail_symbol
+from src.gep.symbols import TERMINALS, random_head_symbol, random_tail_symbol
 
 
-def point_mutation(genome: GEPGenome, rng, mutation_rate: float = 0.05) -> GEPGenome:
+def point_mutation(genome: GEPGenome, rng, mutation_rate: float = 0.05,
+                   terminals=TERMINALS) -> GEPGenome:
     """Mutate single genes. Head positions may become functions or terminals,
     tail positions stay terminals, so the genome remains valid."""
     genes = list(genome.genes)
     for i in range(len(genes)):
         if rng.random() < mutation_rate:
             if i < genome.head_length:
-                genes[i] = random_head_symbol(rng)
+                genes[i] = random_head_symbol(rng, terminals)
             else:
-                genes[i] = random_tail_symbol(rng)
+                genes[i] = random_tail_symbol(rng, terminals)
     return GEPGenome(genes=genes, head_length=genome.head_length)
 
 

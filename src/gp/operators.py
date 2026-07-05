@@ -40,11 +40,16 @@ def subtree_crossover(parent1: GPTree, parent2: GPTree, rng,
     return child
 
 
-def subtree_mutation(parent: GPTree, rng, max_depth: int = 6) -> GPTree:
+def subtree_mutation(parent: GPTree, rng, max_depth: int = 6,
+                     terminals=None) -> GPTree:
     """Replace a random subtree with a small random one."""
     nodes = collect_nodes(parent.root)
     i = int(rng.integers(0, len(nodes)))
-    new_subtree = random_tree(rng, max_depth=3, grow=True).root
+    if terminals is None:
+        new_subtree = random_tree(rng, max_depth=3, grow=True).root
+    else:
+        new_subtree = random_tree(rng, max_depth=3, grow=True,
+                                  terminals=terminals).root
     child = GPTree(root=replace_subtree(parent.root, i, new_subtree))
     if child.depth() > max_depth:
         return parent.copy()

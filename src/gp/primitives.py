@@ -36,7 +36,15 @@ def clamp_value(x: float, lower: float = CLAMP_LOWER, upper: float = CLAMP_UPPER
 
 
 def terminal_value(name: str, state) -> float:
-    """Value of a feature terminal on a Rush Hour state."""
+    """Value of a feature terminal on a Rush Hour state.
+
+    The direct planner (Stage 12-B) evaluates the same trees on a plain
+    feature dict instead of a board state, so dicts are looked up directly.
+    """
+    if isinstance(state, dict):
+        if name in state:
+            return float(state[name])
+        raise ValueError(f"unknown direct feature terminal '{name}'")
     if name == "distance":
         return float(red_car_distance_to_exit(state))
     if name == "blocking":

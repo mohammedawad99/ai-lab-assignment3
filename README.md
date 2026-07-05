@@ -25,6 +25,7 @@ stay local under `results/` and are not committed.
 | Run tests | `python a3.py test` | full pytest suite |
 | Run CVRP final experiments | `python scripts/run_final_experiments.py --tuned-cvrp configs/tuned_cvrp_settings.json --rushhour-hard configs/rushhour_hard_benchmark.json` | needs official `.vrp` files under `data/official_cvrp/` |
 | Run Rush Hour hard benchmark | `python scripts/run_gp_gep_hard_benchmark.py --puzzles examples/rushhour_hard_eval.txt --seeds 42 43 44` | committed summary: `python a3.py rushhour-hard-summary` |
+| Run direct no-A* planner bonus | `python scripts/run_gp_gep_direct_planner.py --seeds 42 43 44` | GP/GEP policy rollout without A*; smoke: `python a3.py rushhour-direct` |
 | Build optional executable (Windows) | `scripts\build_exe_windows.bat` | needs PyInstaller; builds `dist\a3.exe`, not committed |
 | Build optional executable (Unix) | `./scripts/build_exe_unix.sh` | needs PyInstaller; builds `dist/a3`, not committed |
 

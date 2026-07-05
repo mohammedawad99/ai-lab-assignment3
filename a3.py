@@ -94,8 +94,15 @@ def cmd_rushhour_hard_summary(_args):
     return 0
 
 
+def cmd_rushhour_direct(_args):
+    """Smoke-run the direct (no-A*) GP/GEP planner bonus; results local-only."""
+    return run(python_script("scripts/run_gp_gep_direct_planner.py", "--smoke"))
+
+
 COMMANDS = {
     "sanity": (cmd_sanity, "run the 80.64 CVRP sanity check (tiny example)"),
+    "rushhour-direct": (cmd_rushhour_direct,
+                        "smoke-run the direct no-A* GP/GEP planner bonus"),
     "audit": (cmd_audit, "run the consistency gate and the submission audit"),
     "test": (cmd_test, "run the pytest suite"),
     "report-info": (cmd_report_info, "print report PDF/evidence/figure info"),
