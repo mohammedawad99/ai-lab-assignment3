@@ -1,0 +1,79 @@
+Stage 11-C final rerun summary (advanced CVRP moves)
+
+== CVRP: project-best gap per instance (old evidence -> new rerun) ==
+  P-n16-k8: 0.2967% -> 0.2967% (+0.0000) same [cvrp_sa]
+  E-n22-k4: 0.0746% -> 0.0746% (+0.0000) same [cvrp_sa]
+  A-n32-k5: 0.3931% -> 0.3931% (+0.0000) same [cvrp_alns]
+  A-n80-k10: 3.0168% -> 2.9466% (-0.0702) IMPROVED [cvrp_alns]
+  X-n101-k25: 24.1950% -> 23.0063% (-1.1887) IMPROVED [cvrp_ga_island]
+  M-n200-k17: 5.9946% -> 5.5139% (-0.4807) IMPROVED [cvrp_alns]
+  improved: A-n80-k10, X-n101-k25, M-n200-k17; regressed: none
+
+== CVRP: algorithm mean of best-of-seeds gaps (old -> new) ==
+  baseline: 8.703% -> 8.703% (beats baseline on 0/6)
+  cvrp_aco: 7.558% -> 7.558% (beats baseline on 4/6)
+  cvrp_alns: 5.798% -> 5.851% (beats baseline on 6/6)
+  cvrp_bnb_lds: 7.765% -> 7.765% (beats baseline on 2/6)
+  cvrp_ga_island: 7.275% -> 6.958% (beats baseline on 6/6)
+  cvrp_sa: 6.740% -> 6.740% (beats baseline on 4/6)
+  cvrp_tabu: 8.092% -> 8.092% (beats baseline on 5/6)
+
+== ALNS (effective policy): old -> new best gap per instance ==
+  P-n16-k8: 0.2967% -> 0.2967% (+0.0000)
+  E-n22-k4: 0.0746% -> 0.0746% (+0.0000)
+  A-n32-k5: 0.3931% -> 0.3931% (+0.0000)
+  A-n80-k10: 3.0168% -> 2.9466% (-0.0702) (advanced gate ON)
+  X-n101-k25: 25.0112% -> 25.8804% (+0.8692) (advanced gate ON)
+  M-n200-k17: 5.9946% -> 5.5139% (-0.4807) (advanced gate ON)
+
+== GA-Island: old -> new best gap per instance ==
+  P-n16-k8: 0.2967% -> 0.2967% (+0.0000)
+  E-n22-k4: 0.0746% -> 0.0746% (+0.0000)
+  A-n32-k5: 5.7015% -> 5.7015% (+0.0000)
+  A-n80-k10: 4.9518% -> 4.6647% (-0.2871) (advanced gate ON)
+  X-n101-k25: 24.1950% -> 23.0063% (-1.1887) (advanced gate ON)
+  M-n200-k17: 8.4306% -> 8.0065% (-0.4241) (advanced gate ON)
+
+== B&B/LDS: old evidence -> new rerun ==
+  P-n16-k8: 0.2967% -> 0.2967% (+0.0000)
+  E-n22-k4: 0.0746% -> 0.0746% (+0.0000)
+  A-n32-k5: 5.7018% -> 5.7018% (+0.0000)
+  A-n80-k10: 4.9518% -> 4.9518% (+0.0000)
+  X-n101-k25: 27.0796% -> 27.0796% (+0.0000)
+  M-n200-k17: 8.4862% -> 8.4862% (+0.0000)
+  small-instance mode still effective: P 0.2967% and E 0.0746% (PASS)
+  values stable vs old evidence (+-0.5): PASS
+
+== CVRP feasibility: 144/144 rows feasible, 0 rows with errors ==
+
+== runtime (mean elapsed sec per run, old -> new) on gated instances ==
+  cvrp_alns              A-n80-k10         1.4s ->      1.2s
+  cvrp_alns              X-n101-k25        2.2s ->      2.3s
+  cvrp_alns              M-n200-k17       26.9s ->     25.4s
+  cvrp_alns_enhanced     A-n80-k10         1.4s ->      1.2s
+  cvrp_alns_enhanced     X-n101-k25        1.5s ->      1.5s
+  cvrp_alns_enhanced     M-n200-k17       22.0s ->     22.5s
+  cvrp_ga_island         A-n80-k10         2.5s ->      2.7s
+  cvrp_ga_island         X-n101-k25        3.3s ->      3.7s
+  cvrp_ga_island         M-n200-k17        6.5s ->      8.0s
+
+== Rush Hour hard benchmark ==
+  gp_rushhour_seed42: fitness 119583 solved 13/14 expanded 7617
+  gp_rushhour_seed43: fitness 120002 solved 13/14 expanded 7198
+  gp_rushhour_seed44: fitness 91200 solved 11/14 expanded 12150
+  gep_rushhour_seed42: fitness 102807 solved 12/14 expanded 12533
+  gep_rushhour_seed43: fitness 119985 solved 13/14 expanded 7215
+  gep_rushhour_seed44: fitness 101946 solved 12/14 expanded 13384
+  manual_blocker_depth: fitness 116852 solved 13/14 expanded 10338
+  manual_blocking: fitness 106609 solved 13/14 expanded 20631
+  manual_blocking_distance: fitness 113610 solved 13/14 expanded 13580
+  manual_zero: fitness 47761 solved 9/14 expanded 31809
+
+== Ackley (unchanged setup): 21 rows ==
+  ackley_alns: best 0.000000
+  ackley_bnb_lds: best 0.000000
+  ackley_ga_island: best 0.097640
+  ackley_tabu: best 2.636235
+  ackley_aco: best 10.240890
+  random_search: best 17.933020
+  ackley_sa: best 19.906903

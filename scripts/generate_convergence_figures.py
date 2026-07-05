@@ -50,14 +50,22 @@ TUNED = load_tuned()
 
 
 def run_case(instance, algorithm, budget, timeout_sec):
-    # matches the Stage 10-C final settings; the plotted instances (P, A80,
-    # X) all use the enhanced ALNS variant under the pre-declared policy
+    # matches the final settings, including the Stage 11-B advanced pass
+    # (size-gated by customer count); the plotted instances (P, A80, X) all
+    # use the enhanced ALNS variant under the pre-declared policy
     if algorithm == "alns":
         alns_cfg = TUNED.get("alns", {})
+        adv_cfg = TUNED.get("alns_advanced", {})
+        advanced = bool(adv_cfg.get("advanced_local_search", False)) and \
+            len(instance.customer_ids) >= int(adv_cfg.get("min_customers", 0))
         return run_cvrp_alns(instance, iterations=budget, seed=SEED,
                              timeout_sec=timeout_sec,
                              enhanced_operators=True,
-                             reaction_rate=alns_cfg.get("reaction_rate", 0.2))
+                             reaction_rate=alns_cfg.get("reaction_rate", 0.2),
+                             advanced_local_search=advanced,
+                             advanced_every=int(adv_cfg.get("advanced_every", 25)),
+                             advanced_max_passes=int(adv_cfg.get("advanced_max_passes", 2)),
+                             candidate_list_k=adv_cfg.get("candidate_list_k"))
     if algorithm == "aco":
         return run_cvrp_aco(instance, iterations=budget, ants=10, seed=SEED,
                             timeout_sec=timeout_sec)
@@ -66,12 +74,18 @@ def run_case(instance, algorithm, budget, timeout_sec):
                                     timeout_sec=timeout_sec)
     if algorithm == "ga_island":
         ga_cfg = TUNED.get("ga_island", {})
+        ga_advanced = bool(ga_cfg.get("advanced_local_search", False)) and \
+            len(instance.customer_ids) >= int(ga_cfg.get("advanced_min_customers", 0))
         return run_cvrp_ga_island(
             instance, generations=budget,
             population_size=int(ga_cfg.get("population_size", 12)),
             islands=int(ga_cfg.get("islands", 2)),
             mutation_rate=ga_cfg.get("mutation_rate", 0.15),
-            seed=SEED, timeout_sec=timeout_sec)
+            seed=SEED, timeout_sec=timeout_sec,
+            advanced_local_search=ga_advanced,
+            local_search_every=int(ga_cfg.get("local_search_every", 10)),
+            advanced_max_passes=int(ga_cfg.get("advanced_max_passes", 1)),
+            candidate_list_k=ga_cfg.get("candidate_list_k"))
     raise SystemExit(f"unknown algorithm '{algorithm}'")
 
 

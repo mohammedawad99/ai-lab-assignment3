@@ -12,6 +12,14 @@
       "reaction_rate": 0.5,
       "validation_note": "Improves P-n16-k8 (-0.14), A-n80-k10 (-1.01) and X-n101-k25 (-2.07) best gaps, ties E/A32, but regresses M-n200-k17 by +1.02. Accepted for the net mean improvement; the solver default stays enhanced_operators=false so base behavior is unchanged without this config."
     },
+    "alns_advanced": {
+      "advanced_local_search": true,
+      "candidate_list_k": 10,
+      "advanced_every": 25,
+      "advanced_max_passes": 2,
+      "min_customers": 60,
+      "validation_note": "Stage 11-B intensification (relocate + swap + Or-opt + 2-opt*) applied to both ALNS variants when a new best is found and as a final polish. Seeds 42-44 on scaled budgets: A-n80-k10 4.92 -> 4.66, X-n101-k25 26.79 -> 26.68, M-n200-k17 8.41 -> 7.98 mean gap, all feasible. P-n16-k8 regressed 0.30 -> 0.39, so the pass only activates for instances with at least min_customers customers (a size threshold like the bnb_lds small-instance mode, not an instance name list). candidate_list_k 10/20/None produced identical solutions; k=10 is the fastest."
+    },
     "alns_policy": {
       "main_result_rule": "Both ALNS variants run in the final rerun (rows cvrp_alns and cvrp_alns_enhanced). The assignment 'alns' result uses cvrp_alns_enhanced for every instance except M-n200-k17, where Stage 10-A validation showed a +1.02% regression; M-n200-k17 uses the basic cvrp_alns row. This rule was declared before the rerun, not after it.",
       "enhanced_excluded_instances": [
@@ -26,7 +34,13 @@
     "ga_island": {
       "population_size": 30,
       "islands": 2,
-      "mutation_rate": 0.3
+      "mutation_rate": 0.3,
+      "advanced_local_search": true,
+      "local_search_every": 10,
+      "advanced_max_passes": 1,
+      "candidate_list_k": 10,
+      "advanced_min_customers": 60,
+      "advanced_note": "Stage 11-B memetic step: polish the best solution every local_search_every generations and reinject its chromosome. Seeds 42-44 on scaled budgets: A-n80-k10 4.95 -> 4.66 (no longer baseline-stuck), X-n101-k25 24.87 -> 24.84, M-n200-k17 8.45 -> 8.01 mean gap. P-n16-k8 regressed slightly, so the same size gate as alns_advanced applies (advanced_min_customers)."
     },
     "bnb_lds": {
       "small_instance_max_customers": 25,
@@ -50,7 +64,7 @@
       "skipped_existing": false,
       "budget": 300,
       "timeout_sec": 30,
-      "elapsed_time": 12.36230999899999
+      "elapsed_time": 13.291285245999461
     },
     {
       "instance": "E-n22-k4",
@@ -59,7 +73,7 @@
       "skipped_existing": false,
       "budget": 300,
       "timeout_sec": 30,
-      "elapsed_time": 13.603459113997815
+      "elapsed_time": 12.86333086000377
     },
     {
       "instance": "A-n32-k5",
@@ -68,7 +82,7 @@
       "skipped_existing": false,
       "budget": 500,
       "timeout_sec": 60,
-      "elapsed_time": 21.360879280000518
+      "elapsed_time": 17.82092791800096
     },
     {
       "instance": "A-n80-k10",
@@ -77,7 +91,7 @@
       "skipped_existing": false,
       "budget": 800,
       "timeout_sec": 120,
-      "elapsed_time": 98.34700270200119
+      "elapsed_time": 81.93287617299939
     },
     {
       "instance": "X-n101-k25",
@@ -86,7 +100,7 @@
       "skipped_existing": false,
       "budget": 1000,
       "timeout_sec": 180,
-      "elapsed_time": 157.98952551899856
+      "elapsed_time": 156.35403190099896
     },
     {
       "instance": "M-n200-k17",
@@ -95,7 +109,7 @@
       "skipped_existing": false,
       "budget": 1200,
       "timeout_sec": 300,
-      "elapsed_time": 631.2191461500042
+      "elapsed_time": 510.0621976149996
     }
   ],
   "ackley_run_info": {

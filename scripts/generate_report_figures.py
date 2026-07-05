@@ -36,11 +36,18 @@ REQUIRED_RESULTS = [
     RESULTS / "final_execution_manifest.json",
 ]
 
-# pre-tuning best gaps (previous final run, recorded in Stage 10-A snapshot
-# and in report/evidence/final_v2_summary.txt) for the before/after figure
+# pre-tuning best gaps (the Stage 9 final run, recorded in the Stage 10-A
+# snapshot) for the before/after figure
 PREVIOUS_BEST_GAPS = {
     "P-n16-k8": 0.4327, "E-n22-k4": 0.0746, "A-n32-k5": 0.3931,
     "A-n80-k10": 4.0276, "X-n101-k25": 25.4508, "M-n200-k17": 5.9946,
+}
+
+# Stage 10-H committed best gaps (before the Stage 11 advanced moves), from
+# the previous report/evidence snapshot, for the advanced-impact figure
+STAGE10_BEST_GAPS = {
+    "P-n16-k8": 0.2967, "E-n22-k4": 0.0746, "A-n32-k5": 0.3931,
+    "A-n80-k10": 3.0168, "X-n101-k25": 24.1950, "M-n200-k17": 5.9946,
 }
 
 
@@ -199,11 +206,36 @@ def main():
     ax.set_xticks(list(xs))
     ax.set_xticklabels(INSTANCES, rotation=30, ha="right")
     ax.set_ylabel("best gap vs BKS (%)")
-    ax.set_title("CVRP best gaps before vs after Stage 10 tuning "
-                 "(P/A80/X improved, no regressions)")
+    ax.set_title("CVRP best gaps before vs after tuning + advanced moves "
+                 "(P/A80/X/M improved, no regressions)")
     ax.legend()
     fig.tight_layout()
     path = FIGURES / "cvrp_before_after_tuning.png"
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+    created.append(path)
+
+    # ---- Stage 11 advanced-move impact (Stage 10-H bests vs this rerun) ----
+    fig, ax = plt.subplots(figsize=(8.0, 4.4))
+    old_bars = ax.bar([x - width / 2 for x in xs],
+                      [STAGE10_BEST_GAPS[i] for i in INSTANCES], width,
+                      label="Stage 10 (tuned)")
+    new_bars = ax.bar([x + width / 2 for x in xs],
+                      [new_best[i] for i in INSTANCES], width,
+                      label="Stage 11 (advanced moves)")
+    for bars in (old_bars, new_bars):
+        for bar in bars:
+            ax.annotate(f"{bar.get_height():.2f}",
+                        (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                        ha="center", va="bottom", fontsize=7)
+    ax.set_xticks(list(xs))
+    ax.set_xticklabels(INSTANCES, rotation=30, ha="right")
+    ax.set_ylabel("best gap vs BKS (%)")
+    ax.set_title("Stage 11 advanced local search: A80/X/M improved, "
+                 "small instances unchanged")
+    ax.legend()
+    fig.tight_layout()
+    path = FIGURES / "cvrp_stage11_advanced_impact.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
     created.append(path)

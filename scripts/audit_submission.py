@@ -29,9 +29,13 @@ REQUIRED_FILES = [
     "report/evidence/rushhour_hard_manual_summary.csv",
     "report/evidence/rushhour_hard_gp_gep_summary.csv",
     "report/evidence/final_execution_manifest.json",
-    "report/evidence/final_v2_summary.txt",
+    "report/evidence/final_v3_summary.txt",
     "report/evidence/cvrp_seed_robustness_summary.csv",
 ]
+
+# Stage 11-C project-best gaps that the report must state (they must also
+# match the evidence CSVs, checked below against cvrp_algorithm_mean_gaps)
+STAGE11_BEST_GAPS = ["23.0063", "2.9466", "5.5139"]
 
 RESULT_FILES = [
     "results/final_experiments/raw/cvrp_all_instances.csv",
@@ -100,6 +104,18 @@ def main():
         check("report covers seed robustness",
               "cvrp_seed_gap_boxplots.png" in text)
 
+        # Stage 11: advanced local-search results must be in the report
+        for value in STAGE11_BEST_GAPS:
+            check(f"report has Stage 11 best gap {value}", value in text)
+        check("report explains advanced local-search",
+              "advanced" in text.lower() and "2-opt*" in text
+              and "candidate list" in text.lower().replace("candidate-list",
+                                                           "candidate list"))
+        check("report discloses the ALNS regression on X",
+              "25.01" in text and "25.88" in text)
+        check("report shows the advanced-impact figure",
+              "cvrp_stage11_advanced_impact.png" in text)
+
         # B&B/LDS report-vs-evidence consistency (added after Stage 10-H
         # found the report ahead of the committed evidence)
         mean_gaps_path = REPO_ROOT / "report" / "evidence" / "cvrp_algorithm_mean_gaps.csv"
@@ -127,6 +143,13 @@ def main():
                 consistent = all(abs(summary_bnb[i] - float(bnb[i])) < 0.01
                                  for i in instances if i in summary_bnb)
                 check("B&B evidence CSVs agree with each other", consistent)
+
+                # the report's per-instance project-best gaps must equal the
+                # minimum over algorithms in the committed evidence
+                for inst in instances:
+                    best = min(float(row[inst]) for row in by_algo.values())
+                    check(f"report best gap for {inst} matches evidence",
+                          f"{best:.4f}" in text, f"{best:.4f}%")
 
     # result files and row counts
     if args.check_results:

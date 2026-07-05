@@ -21,7 +21,7 @@ EVIDENCE_FILES = [
     "rushhour_hard_config.json",
     "rushhour_hard_manifest.json",
     "final_execution_manifest.json",
-    "final_v2_summary.txt",
+    "final_v3_summary.txt",
     "cvrp_seed_robustness_summary.csv",
 ]
 
@@ -42,6 +42,7 @@ REQUIRED_REFERENCES = [
     "convergence_P-n16-k8.png",
     "convergence_A-n80-k10.png",
     "cvrp_before_after_tuning.png",
+    "cvrp_stage11_advanced_impact.png",
     "rushhour_manual_heuristic_ladder.png",
     "rushhour_gp_gep_vs_manual.png",
     "rushhour_gp_gep_seed_variance.png",
@@ -94,6 +95,23 @@ def test_no_full_results_or_official_data_committed():
                    for p in tracked)
     assert not any(p.endswith(".vrp") and p.startswith("data/official_cvrp/")
                    for p in tracked)
+
+
+def test_stage11_report_claims_match_evidence():
+    # the Stage 11 project-best gaps in the report must equal the evidence
+    import csv
+    text = REPORT_MD.read_text()
+    with open(EVIDENCE / "cvrp_algorithm_mean_gaps.csv", newline="") as f:
+        rows = list(csv.DictReader(f))
+    instances = [k for k in rows[0]
+                 if k not in ("algorithm", "mean_best_gap_percent")]
+    for inst in instances:
+        best = min(float(r[inst]) for r in rows)
+        assert f"{best:.4f}" in text, f"{inst}: {best:.4f} not in report"
+    # the disclosed ALNS regression on X must stay disclosed
+    assert "25.88" in text
+    # advanced pass is explained
+    assert "2-opt*" in text and "Or-opt" in text
 
 
 def test_bnb_report_claims_match_evidence():

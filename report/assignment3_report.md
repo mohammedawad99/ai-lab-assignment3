@@ -23,12 +23,18 @@ every candidate heuristic is judged by actually running A* with it.
 All stochastic runs use the fixed seeds 42, 43 and 44 from the final
 experiment plan, so every number below is reproducible.
 
-After the first complete run, a controlled tuning pass (validated on all
-six instances before acceptance) improved SA, GA-Island and ALNS, and Part
-B was strengthened with a measured 14-puzzle hard Rush Hour benchmark. The
-final tuned rerun improved the best CVRP gaps on three instances with no
-regressions, and the Ackley results were left unchanged. All numbers in
-this report come from that final tuned rerun.
+The final version of the project contains four layers on top of the first
+complete run: a controlled tuning pass (validated on all six instances
+before acceptance) that improved SA, GA-Island and ALNS; a B&B/LDS
+small-instance mode; a local-search performance pass (O(1) delta 2-opt)
+followed by advanced local-search moves (inter-route swap, Or-opt, 2-opt*,
+candidate-list neighborhoods) gated to the larger instances; and, on Part
+B, a measured 14-puzzle hard Rush Hour benchmark plus an 8-seed CVRP
+robustness analysis. The final rerun with all accepted settings improved
+the best CVRP gaps to 2.95% on A-n80-k10, 23.01% on X-n101-k25 and 5.51%
+on M-n200-k17 with no project-best regressions, and the Ackley results
+were left unchanged. All numbers in this report come from that final
+rerun.
 
 ## 2. Implementation Overview
 
@@ -40,7 +46,7 @@ validation, baseline) with `src/cvrp/solvers/` (the six algorithms),
 `src/rushhour/` (board, A*, safe evaluator, GP/GEP comparison), `src/gp/`
 and `src/gep/` (separate frameworks), and `src/experiments/` (runners,
 summaries, report assets). `scripts/` holds the CLI entry points and
-`tests/` the pytest suite (268 tests at the time of the final run).
+`tests/` the pytest suite (343 tests at the time of the final run).
 
 ### 2.2 Reproducibility and command-line interface
 
@@ -137,53 +143,75 @@ follows a rule declared *before* the rerun: enhanced everywhere except
 M-n200-k17, which uses the basic variant. Nothing is cherry-picked after
 the fact and both variants' raw rows are kept.
 
+On top of the tuning, the final run includes a two-step local-search
+upgrade. First, 2-opt was rewritten with O(1) delta evaluation (only the
+four changed edges are priced per candidate move instead of recomputing
+the whole route) — proven byte-identical to the old implementation by
+tests, so it changed runtime, not results. Second, that headroom paid for
+**advanced moves**: inter-route relocate and swap, Or-opt (segment
+relocate of length 2–3), and 2-opt* (cross-route tail exchange), combined
+into an intensification pass that ALNS applies to new best solutions and
+GA-Island applies to its elite every 10 generations (with the polished
+chromosome reinjected). Neighborhoods can be restricted to precomputed
+k-nearest candidate lists (k = 10 accepted; k = 10/20/full produced
+identical solutions in validation). Because validation showed a small
+regression on the tiny instances (P-n16-k8 0.30→0.39), the advanced pass
+is **gated by instance size** — it only activates for instances with at
+least 60 customers, a customer-count threshold like the B&B small-instance
+mode, not an instance name list — so the small instances keep their
+already-validated behavior exactly.
+
 Best feasible result per instance (all 144 rows feasible):
 
-| instance | BKS | best algorithm | best cost | best gap | previous best |
+| instance | BKS | best algorithm | best cost | best gap | before tuning + advanced |
 | --- | --- | --- | --- | --- | --- |
-| P-n16-k8 | 450 | sa (tuned) | 451.35 | 0.30% | 0.43% |
-| E-n22-k4 | 375 | sa (tuned) | 375.28 | 0.07% | 0.07% |
-| A-n32-k5 | 784 | alns | 787.08 | 0.39% | 0.39% |
-| A-n80-k10 | 1763 | alns (enhanced) | 1816.28 | 3.02% | 4.03% |
-| X-n101-k25 | 27591 | ga_island (tuned) | 34269.89 | 24.20% | 25.45% |
-| M-n200-k17 | 1275 | alns | 1351.43 | 5.99% | 5.99% |
+| P-n16-k8 | 450 | sa (tuned) | 451.34 | 0.2967% | 0.43% |
+| E-n22-k4 | 375 | sa (tuned) | 375.28 | 0.0746% | 0.07% |
+| A-n32-k5 | 784 | alns | 787.08 | 0.3931% | 0.39% |
+| A-n80-k10 | 1763 | alns (enhanced + advanced) | 1814.95 | 2.9466% | 4.03% |
+| X-n101-k25 | 27591 | ga_island (tuned + advanced) | 33938.66 | 23.0063% | 25.45% |
+| M-n200-k17 | 1275 | alns (basic + advanced) | 1345.30 | 5.5139% | 5.99% |
 
 ![CVRP best gap by instance](figures/cvrp_best_gap_by_instance.png)
 
 ![CVRP best gaps before vs after tuning](figures/cvrp_before_after_tuning.png)
 
-The before/after chart shows what the tuning pass actually bought:
-P-n16-k8 (0.43→0.30), A-n80-k10 (4.03→3.02) and X-n101-k25 (25.45→24.20)
-improved, the other three stayed exactly where they were, and nothing got
-worse — the pre-declared ALNS policy is what protected M-n200-k17. The
-X-n101-k25 column still stands out; that is a capacity-packing property of
-the instance, explained below, not an algorithm bug.
+The before/after chart shows the combined effect of tuning plus the
+advanced moves: P-n16-k8 (0.43→0.30), A-n80-k10 (4.03→2.95), X-n101-k25
+(25.45→23.01) and M-n200-k17 (5.99→5.51) improved, E-n22-k4 and A-n32-k5
+stayed exactly where they were, and no instance got worse. The X-n101-k25
+column still stands out; that is a capacity-packing property of the
+instance, explained below, not an algorithm bug.
 
 Per algorithm (mean of best-of-seeds gaps over the six instances, policy
 view):
 
 | algorithm | mean best gap | beats baseline on |
 | --- | --- | --- |
-| alns (policy) | 5.80% | 6/6 instances |
-| sa (tuned) | 6.74% | 4/6 |
-| ga_island (tuned) | 7.28% | 5/6 |
-| aco | 7.56% | 4/6 |
-| bnb_lds (small-instance mode) | 7.77% | 2/6 |
-| tabu | 8.09% | 5/6 |
-| baseline | 8.70% | — |
+| alns (policy + advanced) | 5.851% | 6/6 instances |
+| sa (tuned) | 6.740% | 4/6 |
+| ga_island (tuned + advanced) | 6.958% | 6/6 |
+| aco | 7.558% | 4/6 |
+| bnb_lds (small-instance mode) | 7.765% | 2/6 |
+| tabu | 8.092% | 5/6 |
+| baseline | 8.703% | — |
 
 ![CVRP mean gap by algorithm](figures/cvrp_mean_gap_by_algorithm.png)
 
-ALNS is now the only method that beats the multi-stage baseline on every
-single instance. The tuned SA is the biggest single mover (its mean best
-gap fell from 8.50% to 6.74% purely by spending its unused time budget on
-more iterations with a longer schedule), and the tuned GA improved to
-7.28% — but neither dominates, and both still fall back to baseline level
-on A-n80-k10. B&B/LDS finally earned its place with a small-instance mode
-(deeper discrepancy budget for instances with at most 25 customers): it
-now ties the project-best results on P-n16-k8 (0.30%) and E-n22-k4
-(0.07%) in about a second each — but on the four larger instances it still
-returns its starting incumbent, which is stated as-is.
+ALNS keeps the lowest mean best gap (5.85%), and with the advanced pass
+GA-Island now also beats the multi-stage baseline on all six instances —
+its memetic polish finally moved it off the baseline on A-n80-k10 (4.66%
+vs the baseline 4.95%) and it holds the overall best X-n101-k25 result.
+The tuned SA remains the biggest single tuning mover (8.50% to 6.74%
+purely by spending its unused time budget on more iterations with a longer
+schedule). One honest caveat: the advanced pass changed the enhanced ALNS
+trajectory on X-n101-k25 for the worse (25.01→25.88), which is why the
+ALNS mean ticked up from 5.80% to 5.85% even though ALNS improved on
+A-n80-k10 and M-n200-k17 — the regression is disclosed in Section 4.4.
+B&B/LDS keeps its small-instance mode results: it ties the project-best on
+P-n16-k8 (0.30%) and E-n22-k4 (0.07%) in about a second each — but on the
+four larger instances it still returns its starting incumbent, which is
+stated as-is (overall mean 7.77%, beating the baseline on 2/6).
 
 ![CVRP mean runtime by instance](figures/cvrp_runtime_by_instance.png)
 
@@ -200,21 +228,23 @@ and the route count in the title must not exceed the fleet size.
 
 ![Best routes on P-n16-k8](figures/cvrp_route_P-n16-k8.png)
 
-P-n16-k8 (tuned SA, seed 42, cost 451.35): eight short routes, each
+P-n16-k8 (tuned SA, seed 42, cost 451.34): eight short routes, each
 serving only one or two customers — with capacity 35 and demands up to
 30-plus, most vehicles can take very little, which is why the instance
 needs all eight vehicles despite having only 15 customers.
 
 ![Best routes on A-n80-k10](figures/cvrp_route_A-n80-k10.png)
 
-A-n80-k10 (enhanced ALNS, seed 44, cost 1816.28): ten routes fanning out
-of the depot in clean geographic sectors. Some crossings between
-neighboring routes remain — visual evidence of the remaining 3% gap that
-in-route 2-opt alone cannot remove.
+A-n80-k10 (enhanced ALNS with the advanced pass, seed 44, cost 1814.95):
+ten routes fanning out of the depot in clean geographic sectors. A few
+crossings between neighboring routes remain — visual evidence of the
+remaining ~2.9% gap that even the inter-route moves cannot remove within
+the budget.
 
 ![Best routes on X-n101-k25](figures/cvrp_route_X-n101-k25.png)
 
-X-n101-k25 (tuned GA-Island, seed 43, cost 34269.89): the plot is dense
+X-n101-k25 (tuned GA-Island with the advanced pass, seed 43, cost
+33938.66): the plot is dense
 because the instance is large (100 customers) and extremely tight (25
 nearly-full routes), so it is harder to inspect visually — long
 criss-crossing legs are exactly what a load-driven packing looks like when
@@ -227,25 +257,30 @@ geometry has to take second place to capacity.
 On the small instance every method starts from the repaired baseline
 (461.94) and improves quickly: ACO and Tabu reach 451.95 within the first
 50 iterations, and the enhanced ALNS goes one step further to 451.34 for
-this seed. After that the curves are flat — the instance is essentially
-solved as far as these operators can take it.
+this seed (the advanced pass is gated off here — 15 customers is far below
+the 60-customer threshold). After that the curves are flat — the instance
+is essentially solved as far as these operators can take it.
 
 ![Convergence on A-n80-k10](figures/convergence_A-n80-k10.png)
 
 On A-n80-k10 most of the quality still comes from the multi-stage baseline
-(1850.30), but the enhanced ALNS now visibly pulls away to 1841.82 for
-seed 42 (its best seed reaches 1816.28), while the tuned GA-Island and ACO
-stay on the baseline for this seed. The strong start compresses the
-visible improvement — the y-axis spans a handful of cost units.
+(1850.30), but with the advanced intensification the enhanced ALNS pulls
+away to 1823.82 for seed 42 (its best seed reaches 1814.95) and the tuned
+GA-Island — which used to sit on the baseline for this seed — now steps
+down to 1845.24 through its memetic polish, while ACO stays on the
+baseline. The strong start compresses the visible improvement — the y-axis
+spans a handful of cost units.
 
 ![Convergence on X-n101-k25](figures/convergence_X-n101-k25.png)
 
-On X-n101-k25 the curves confirm the packing story with one welcome
-change: the enhanced ALNS route-removal operator can now restructure whole
-routes, so ALNS improves the subset-sum start to 34491.83 for this seed
-(basic ALNS could not move at all in the 3-unit-slack packing), and ACO's
-constructive ants reach 34613.14. Neither gets anywhere near the BKS —
-improvement is still limited after feasible packing, as discussed above.
+On X-n101-k25 the curves confirm the packing story: the enhanced ALNS
+route-removal operator can restructure whole routes and improves the
+subset-sum start to 34731.66 for this seed (basic ALNS could not move at
+all in the 3-unit-slack packing), and ACO's constructive ants reach
+34613.14 — for this particular seed ACO actually ends below ALNS, which is
+the seed-level face of the ALNS-on-X regression disclosed in Section 4.4.
+Neither gets anywhere near the BKS — improvement is still limited after
+feasible packing, as discussed above.
 
 ![ALNS operator weights on A-n80-k10](figures/alns_operator_weights_A-n80-k10.png)
 
@@ -257,9 +292,13 @@ behavior for a run that has already converged, not a malfunction.
 
 ### 4.3 Seed robustness (8 seeds)
 
-Best values can hide luck, so the final effective algorithm set was rerun
-with eight seeds (42–49) on four representative instances — 224 runs, all
-feasible. The boxplots show the full gap distribution, not just the best:
+Best values can hide luck, so the effective algorithm set was rerun with
+eight seeds (42–49) on four representative instances — 224 runs, all
+feasible. This robustness study was measured with the Stage 10
+configuration, before the advanced local-search pass was added, so its
+distributions describe the tuned solvers; the final best values in the
+tables above come from the later rerun. The boxplots show the full gap
+distribution, not just the best:
 
 ![Gap distribution over seeds](figures/cvrp_seed_gap_boxplots.png)
 
@@ -272,11 +311,12 @@ Median-level reading, which is more honest than best-level:
   **seed-sensitive** — their medians sit at the baseline 5.70%, meaning
   most seeds do not escape it. ACO is quietly the most consistent improver
   there (median 4.58%).
-- **A-n80-k10**: ALNS improves on most seeds (median 4.90%, best 3.02%);
-  Tabu improves slightly and consistently (median 4.89%); everything else
-  sits on the baseline.
-- **X-n101-k25**: GA-Island is the most robust improver (median 25.01%,
-  best 24.20%); ALNS helps on some seeds only (median 26.86%).
+- **A-n80-k10**: ALNS improves on most seeds (median 4.90% in this
+  pre-advanced study); Tabu improves slightly and consistently (median
+  4.89%); everything else sits on the baseline — the advanced pass later
+  moved GA off the baseline here.
+- **X-n101-k25**: GA-Island is the most robust improver (median 25.01% in
+  this study); ALNS helps on some seeds only (median 26.86%).
 
 ![Runtime distribution over seeds](figures/cvrp_seed_runtime_boxplots.png)
 
@@ -289,6 +329,33 @@ test is claimed — but they make one thing clear that the best-value tables
 cannot: ALNS's advantage is broad but not uniform, and some of the tuned
 wins (especially on A-n32-k5) depend on the seed.
 
+### 4.4 Advanced local-search impact (Stage 11)
+
+![Stage 11 advanced-move impact](figures/cvrp_stage11_advanced_impact.png)
+
+The advanced moves were validated on scaled budgets before acceptance and
+then confirmed by the full final rerun. Against the previous committed
+final results, the project-best gaps moved as follows:
+
+| instance | before advanced | after advanced | change |
+| --- | --- | --- | --- |
+| A-n80-k10 | 3.0168% | 2.9466% | −0.07 |
+| X-n101-k25 | 24.1950% | 23.0063% | −1.19 |
+| M-n200-k17 | 5.9946% | 5.5139% | −0.48 |
+| P-n16-k8 / E-n22-k4 / A-n32-k5 | — | — | unchanged (gate off) |
+
+There are no project-best regressions. GA-Island gained the most: its
+memetic polish improved all three gated instances (A-n80 4.95→4.66,
+X-n101 24.20→23.01, M-n200 8.43→8.01) and it now beats the baseline on
+6/6. ALNS improved on A-n80-k10 (3.02→2.95) and M-n200-k17 (5.99→5.51),
+but its enhanced variant **regressed on X-n101-k25 (25.01→25.88)** — the
+intensification restarts the search from polished bests, and on this
+extremely tight instance that particular trajectory change hurt. The
+regression is contained (the X project-best still improved through GA) and
+reported rather than tuned away. To be clear, X-n101-k25 is not solved:
+23.01% remains a large gap, for the capacity-packing reasons in the note
+below.
+
 Honest note on X-n101-k25: its total demand is 5147 while the total fleet
 capacity is 25 × 206 = 5150 — only 3 units of slack over 25 routes, so
 almost every route must be loaded completely full. Clarke-Wright needed 28
@@ -296,7 +363,8 @@ routes there, and a subset-sum packing repair (Section 5) was required just
 to reach feasibility. That packing ignores geometry, and with nearly zero
 capacity slack the usual local moves (relocate, cross-route swap) are
 almost always capacity-infeasible, so the metaheuristics could barely
-improve the start. The 25.45% gap is real and reported as such.
+improve the start. The advanced inter-route moves recovered some of it,
+but the remaining 23.01% gap is real and reported as such.
 
 ## 5. Multi-stage CVRP Heuristic
 
@@ -334,11 +402,19 @@ over the integer demands), with a lower bound making sure the remaining
 customers still fit into the remaining vehicles.
 
 Complexity: everything here is heuristic, not exact. One 2-opt pass over a
-route of length L costs O(L²) route evaluations and passes repeat until no
-improvement. The relocate pass scans all customer/position pairs, roughly
-O(n²) per pass. The repair adds packing work (the subset-sum table is
-O(n · capacity) per vehicle) but guarantees the route count fits the fleet,
-which turned out to be essential on two of the six official instances.
+route of length L evaluates O(L²) candidate reversals; since the Stage 11
+performance pass each candidate is priced in O(1) from its four changed
+edges (delta = d[a][c] + d[b][d] − d[a][b] − d[c][d]) instead of
+recomputing the whole route, which made the pass 7–136× faster
+(route length 10–200 in the microbenchmark) while producing byte-identical
+routes. A NumPy distance matrix was also benchmarked and rejected: scalar
+indexing into an ndarray inside these Python loops measured about 4×
+slower than plain lists. The relocate pass scans all customer/position
+pairs, roughly O(n²) per pass, and can optionally be restricted to
+k-nearest candidate lists. The repair adds packing work (the subset-sum
+table is O(n · capacity) per vehicle) but guarantees the route count fits
+the fleet, which turned out to be essential on two of the six official
+instances.
 
 ## 6. CVRP Algorithms
 
@@ -370,7 +446,8 @@ result (0.43%) and was solid on the small instances; mean gap 8.12%.
 Ants build routes customer by customer with probability proportional to
 pheromone^α · (1/distance)^β under the capacity limit, light 2-opt per ant,
 evaporation plus deposits on the iteration and global best. ACO produced
-the best feasible X-n101-k25 result (25.45%) — its constructive nature
+the best feasible X-n101-k25 result of the first full run (25.45%, since
+surpassed by the tuned GA) — its constructive nature
 sidesteps the frozen-local-moves problem there — at the price of the highest
 runtime (mean 32.8 s per run).
 
@@ -382,9 +459,12 @@ selection, elitism 1; two islands with ring migration every 20 generations.
 The tuned final settings raise the population from 12 to 30 and the
 mutation rate from 0.15 to 0.3 (tuning also exposed and fixed an
 initial-population bug that looped forever when the population was larger
-than the number of distinct permutations). Result: mean best gap 7.28%,
-beats the baseline on 5/6 instances, and holds the overall best X-n101-k25
-result (24.20%) — but it still sits at baseline level on A-n80-k10.
+than the number of distinct permutations). Stage 11 added a size-gated
+memetic step: every 10 generations the best solution is polished with the
+advanced inter-route pass and its chromosome is reinjected into island 0.
+Result: mean best gap 6.96%, beats the baseline on 6/6 instances, holds
+the overall best X-n101-k25 result (23.01%), and finally moved off the
+baseline on A-n80-k10 (4.66%).
 
 ### 6.5 ALNS
 
@@ -395,11 +475,16 @@ removal, full-route removal, segment removal and regret-3 insertion. The
 final rerun executed both variants on every instance, and the reported
 "alns" result follows the rule declared before the rerun: enhanced
 everywhere except M-n200-k17, where validation had shown a +1.02%
-regression, so the basic variant is used there. With that policy ALNS is
-the strongest method overall: lowest mean best gap (5.80%), the only
-method beating the baseline on 6/6 instances, and the best result on
-A-n32-k5 (0.39%), A-n80-k10 (3.02%) and M-n200-k17 (5.99%) at a moderate
-runtime.
+regression, so the basic variant is used there. Stage 11 added a
+size-gated intensification: when ALNS finds a new best on an instance with
+at least 60 customers, the best is polished with the advanced inter-route
+pass (relocate/swap/Or-opt/2-opt*, candidate lists k=10) and the search
+continues from it, plus one final polish before returning. With that
+policy ALNS remains the strongest method overall: lowest mean best gap
+(5.85%), beats the baseline on 6/6 instances, and holds the best result on
+A-n32-k5 (0.39%), A-n80-k10 (2.95%) and M-n200-k17 (5.51%) at a moderate
+runtime. Its one disclosed weak spot: the intensification worsened the
+enhanced variant's X-n101-k25 trajectory (25.01→25.88, Section 4.4).
 
 ### 6.6 Branch-and-Bound / LDS
 
@@ -528,23 +613,27 @@ the tuned settings, and the pre-declared ALNS policy.
 ## 10. Analysis and Discussion
 
 - **CVRP pattern.** Gaps grow with instance size: 0.30% or less on
-  P-n16-k8 and E-n22-k4, 0.39% on A-n32-k5, ~3–6% on A-n80-k10 and
-  M-n200-k17. After tuning, ALNS beats the baseline on all six instances
-  (mean best gap 5.80%) and is the most consistent method overall.
-- **What tuning bought (and did not).** P-n16-k8 0.43→0.30, A-n80-k10
-  4.03→3.02, X-n101-k25 25.45→24.20, with the other three unchanged and no
+  P-n16-k8 and E-n22-k4, 0.39% on A-n32-k5, ~3–5.5% on A-n80-k10 and
+  M-n200-k17. ALNS keeps the lowest mean best gap (5.85%) and, together
+  with the advanced GA-Island, beats the baseline on all six instances.
+- **What tuning and the advanced moves bought (and did not).** Tuning:
+  P-n16-k8 0.43→0.30, A-n80-k10 4.03→3.02, X-n101-k25 25.45→24.20. The
+  Stage 11 advanced moves then pushed the large instances further:
+  A-n80-k10 →2.95, X-n101-k25 →23.01, M-n200-k17 5.99→5.51, with the
+  small instances unchanged by the size gate and no project-best
   regressions. The tuned SA improvement came purely from spending its
   unused time budget on more iterations — a fairness-preserving change,
   since all methods share the same timeout. The enhanced ALNS improvement
   needed real new operators (Shaw/route/segment removal, regret-3). Its
-  M-n200-k17 regression was handled by the pre-declared hybrid policy, not
-  by hiding rows.
+  M-n200-k17 regression was handled by the pre-declared hybrid policy, and
+  the one advanced-move regression (enhanced ALNS on X, 25.01→25.88) is
+  disclosed in Section 4.4, not hidden.
 - **X-n101-k25.** With 3 units of total capacity slack, feasibility is a
-  bin-packing problem and local moves are nearly frozen: any relocate
-  overfills a route. The enhanced ALNS route-removal operator and the
-  tuned GA can now restructure a little (best gap 25.45→24.20), but the
-  gap stays large. Truly improving it would need capacity-aware compound
-  moves (e.g. ejection chains), which stayed out of scope.
+  bin-packing problem and single-customer local moves are nearly frozen:
+  any relocate overfills a route. The Stage 11 compound moves (swap,
+  Or-opt, 2-opt*) were added precisely for this and recovered about 1.2
+  points through GA (24.20→23.01), but the gap stays large. Full ejection
+  chains — the next escalation — stayed out of scope.
 - **Ackley.** Unchanged by this stage. The warm-up separated the methods,
   but part of that separation comes from how each was adapted (Section 7).
   Untuned SA losing to random search there remains a useful reminder that
@@ -561,15 +650,25 @@ the tuned settings, and the pre-declared ALNS policy.
   moderate runtime; ACO remains the most expensive; tuned SA uses its
   budget instead of leaving it idle. B&B/LDS with the small-instance mode
   ties the best results on the two smallest instances almost for free, but
-  spends its budget without beating the incumbent everywhere else.
-- **Seed robustness.** The 8-seed analysis (Section 4.3) shows which wins
-  are stable: ALNS is a broad but not uniform improver, GA is the reliable
-  one on X, B&B/LDS is perfectly stable where it works, and the A-n32-k5
-  headline numbers are seed-lucky (median = baseline).
+  spends its budget without beating the incumbent everywhere else. The
+  advanced moves bought their quality at a controlled cost: mean ALNS
+  runtime on M-n200-k17 stayed flat (26.9→25.4 s basic, 22.0→22.5 s
+  enhanced) and GA paid about 1.5 s extra per M-n200-k17 run, because the
+  delta 2-opt speedup absorbed most of the added work.
+- **Seed robustness.** The 8-seed analysis (Section 4.3, measured before
+  the advanced pass) shows which wins are stable: ALNS is a broad but not
+  uniform improver, GA is the reliable one on X, B&B/LDS is perfectly
+  stable where it works, and the A-n32-k5 headline numbers are seed-lucky
+  (median = baseline). Eight seeds give a descriptive picture, not a
+  statistical significance claim.
 - **Limitations.** One fixed budget/timeout profile per instance, three
-  seeds for the main tables (eight for the robustness section), one tuning
-  pass validated on the same six instances, and a 14-puzzle Rush Hour set —
-  the comparisons hold for this setup only.
+  seeds for the main tables (eight for the robustness section, which
+  predates the advanced pass), one tuning pass validated on the same six
+  instances, an advanced-move regression on one algorithm/instance pair
+  (Section 4.4), a B&B/LDS that is still ineffective beyond 25 customers,
+  and a 14-puzzle Rush Hour set — the comparisons hold for this setup
+  only, and no claim of class-leading performance is made without an
+  external comparison.
 
 ## 11. Complexity and Practical Considerations
 
@@ -580,7 +679,11 @@ the tuned settings, and the pre-declared ALNS policy.
 - **Neighborhood costs.** The shared relocate/swap/2-opt neighborhood costs
   O(n) per sampled neighbor (copy + cost); Tabu's 40 candidates per
   iteration make it ~40× SA per iteration, which matches the observed
-  runtimes.
+  runtimes. The Stage 11 best-improvement passes (relocate, swap, Or-opt,
+  2-opt*) price each candidate move in O(1) from its changed edges and can
+  prune their scans with k-nearest candidate lists; both the exact and the
+  pruned neighborhoods are kept available, and k = 10 was accepted only
+  after producing identical solutions to the full scan in validation.
 - **Stochastic variance.** Three seeds per configuration; the summary CSVs
   report mean and standard deviation. The seeds are fixed in the plan, so
   every row can be regenerated exactly.
@@ -613,11 +716,17 @@ and staged workflow.
   `python scripts/run_final_experiments.py --tuned-cvrp configs/tuned_cvrp_settings.json --rushhour-hard configs/rushhour_hard_benchmark.json`
 - Hard Rush Hour benchmark on its own:
   `python scripts/run_gp_gep_hard_benchmark.py --puzzles examples/rushhour_hard_eval.txt --seeds 42 43 44`
-- Old-vs-new comparison: `python scripts/extract_final_results_v2.py`
+- Old-vs-new comparison: `python scripts/extract_final_results_v3.py`
+  (its output, `final_v3_summary.txt`, is the current final comparison
+  summary and a copy is committed under `report/evidence/`)
+- Evidence snapshots: `python scripts/refresh_report_evidence.py` copies
+  and derives the small committed files under `report/evidence/` from the
+  local final results
 - Report figures: `python scripts/generate_report_figures.py`, plus
   `python scripts/generate_route_visualizations.py` and
   `python scripts/generate_convergence_figures.py`, then
   `python scripts/export_report_pdf.py` for this PDF
+- Audit: `python scripts/audit_submission.py --check-results --check-pdf`
 - Report facts: `python scripts/extract_report_numbers.py`
 - Small evidence snapshots of the result files cited by this report are
   committed under `report/evidence/` (summaries, GP/GEP runs, execution
@@ -636,8 +745,8 @@ rerun while the other five instances were reused untouched:
 ![Final experiment runner code](figures/code_final_runner.png)
 
 The submission audit output below is the real terminal output of the audit
-script on this repository — 28 checks covering files, row counts,
-feasibility, the report, and forbidden artifacts:
+script on this repository — around 50 checks covering files, row counts,
+feasibility, report-vs-evidence consistency, and forbidden artifacts:
 
 ![Submission audit output](figures/terminal_audit_pass.png)
 
@@ -652,22 +761,26 @@ The implementation covers everything the assignment asks for: the six
 required search algorithms on both the Ackley warm-up and the six official
 CVRP instances, an explicit multi-stage CVRP heuristic with an honest
 feasibility-repair story, and separate GP and GEP frameworks for evolving
-Rush Hour heuristics evaluated through A*. The final tuned rerun (144 CVRP
-rows, all feasible) improved the best gaps on three instances with no
-regressions: 0.07–0.39% on the three small instances, 3.02% on A-n80-k10,
-5.99% on M-n200-k17, and 24.20% on the capacity-tight X-n101-k25 — still
-large and reported as a real limitation rather than smoothed over. ALNS
-with the pre-declared hybrid policy is the only method beating the
-multi-stage baseline on all six instances; B&B/LDS, after gaining a
-small-instance deep-search mode, ties the best known project results on
-the two smallest instances but still returns its incumbent on the four
-larger ones, which is stated as-is. On Ackley (unchanged), the adapted ALNS
+Rush Hour heuristics evaluated through A*. The final rerun (144 CVRP rows,
+all feasible), which combines the tuned settings with the Stage 11
+advanced local-search moves, holds the project's best gaps: 0.07–0.39% on
+the three small instances, 2.95% on A-n80-k10, 5.51% on M-n200-k17, and
+23.01% on the capacity-tight X-n101-k25 — still large and reported as a
+real limitation rather than smoothed over, along with the one
+algorithm-level regression the advanced pass caused (enhanced ALNS on X).
+ALNS with the pre-declared hybrid policy keeps the lowest mean gap and
+beats the multi-stage baseline on all six instances, now joined by the
+memetic GA-Island; B&B/LDS, after gaining a small-instance deep-search
+mode, ties the best known project results on the two smallest instances
+but still returns its incumbent on the four larger ones, which is stated
+as-is. On Ackley (unchanged), the adapted ALNS
 and B&B/LDS reached the optimum while untuned SA did not beat random
 search — a lesson the CVRP tuning then confirmed from the other direction.
 On the hard Rush Hour benchmark, both evolved frameworks beat the
 strongest manual heuristic by about 30% fewer A* expansions, while GP and
 GEP themselves remain honestly tied at the top with seed variance
-dominating. The main open improvements are capacity-aware compound moves
-for tight CVRP instances, a stronger bound to extend B&B/LDS beyond 25
-customers, and pushing the hard Rush Hour set until the frameworks
-separate.
+dominating. The main open improvements are full ejection chains for the
+capacity-tight CVRP instances (the Stage 11 swap/Or-opt/2-opt* moves
+recovered only part of the X-n101-k25 gap), a stronger bound to extend
+B&B/LDS beyond 25 customers, and pushing the hard Rush Hour set until the
+frameworks separate.

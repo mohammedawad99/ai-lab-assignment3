@@ -35,7 +35,9 @@ IMAGE_DPI = 150.0
 
 IMAGE_RE = re.compile(r"^!\[[^\]]*\]\(([^)]+)\)\s*$")
 
-KEY_TEXT = ["Assignment 3 Report", "Ackley", "CVRP", "Rush Hour", "GP", "GEP"]
+KEY_TEXT = ["Assignment 3 Report", "Ackley", "CVRP", "Rush Hour", "GP", "GEP",
+            "23.0063", "2.9466", "5.5139", "advanced local-search", "2-opt*",
+            "blocker_depth"]
 
 
 def align_table(block):

@@ -14,6 +14,7 @@ REQUIRED_FIGURES = [
     "cvrp_mean_gap_by_algorithm.png",
     "cvrp_runtime_by_instance.png",
     "cvrp_before_after_tuning.png",
+    "cvrp_stage11_advanced_impact.png",
     "ackley_best_value_by_algorithm.png",
     "ackley_runtime_by_algorithm.png",
     "gp_gep_eval_fitness.png",
