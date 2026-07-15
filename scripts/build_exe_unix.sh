@@ -11,8 +11,8 @@ else
 fi
 if ! "$PY" -m PyInstaller --version >/dev/null 2>&1; then
     echo "PyInstaller is not installed. Install it with:"
-    echo "  $PY -m pip install pyinstaller"
+    echo "  $PY -m pip install -r requirements-build.txt"
     exit 1
 fi
-"$PY" -m PyInstaller --onefile --name a3 a3.py
+"$PY" -m PyInstaller --onefile --name a3 --console a3.py
 echo "built: dist/a3 (generated artifact, do not commit)"

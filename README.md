@@ -62,6 +62,37 @@ data and are not committed unless the course explicitly asks for them.
 
 - Python 3.12.3 (the version used for all reported runs)
 - Install dependencies: `pip install -r requirements.txt`
+- Building the optional executable additionally needs
+  `pip install -r requirements-build.txt` (PyInstaller, build-time only)
+
+## Building the Windows executable (submission item b)
+
+Submission item (b) — "run programs (EXE)" — is delivered by `a3.py` with
+the `run_a3.sh` / `run_a3.bat` wrappers, plus a standalone `a3.exe` built
+with PyInstaller. Per coding rule 7 no binary is committed or included in
+the source archive; the grader (or submitter) builds it with the exact
+commands below.
+
+**Must run in native Windows PowerShell** — PyInstaller does not
+cross-compile, so a build under WSL/Linux produces a Linux binary, not a
+Windows `.exe`.
+
+```powershell
+git clone https://github.com/mohammedawad99/ai-lab-assignment3
+cd ai-lab-assignment3
+python -m venv .venv
+.venv\Scripts\python -m pip install --upgrade pip
+.venv\Scripts\pip install -r requirements.txt -r requirements-build.txt
+scripts\build_exe_windows.bat        # -> dist\a3.exe
+.\dist\a3.exe sanity                 # must print the 80.64 sanity solution
+```
+
+`a3.exe` is a thin launcher that delegates subcommands to the repository
+scripts, so nothing needs to be bundled with `--add-data` (on Windows the
+separator would be `;`, e.g. `--add-data "data;data"` — not needed here):
+run it from the repository root, or from `dist\` inside it, with Python
+installed. Build outputs (`dist\`, `build\`, `*.spec`) are git-ignored
+generated artifacts.
 
 ## Project layout
 

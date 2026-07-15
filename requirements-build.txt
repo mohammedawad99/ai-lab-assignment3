@@ -1,0 +1,5 @@
+# Build-time-only dependencies (packaging the optional executable).
+# NOT needed to run or grade the project - runtime deps are in
+# requirements.txt. Install both to build a3.exe:
+#   pip install -r requirements.txt -r requirements-build.txt
+pyinstaller==6.21.0

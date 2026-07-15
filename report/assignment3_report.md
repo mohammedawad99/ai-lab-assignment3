@@ -497,8 +497,14 @@ result (0.43%) and was solid on the small instances; mean gap 8.12%.
 ### 6.3 Ant Colony Optimization
 
 Ants build routes customer by customer with probability proportional to
-pheromone^α · (1/distance)^β under the capacity limit, light 2-opt per ant,
-evaporation plus deposits on the iteration and global best. ACO produced
+pheromone^α · η^β under the capacity limit, where the visibility heuristic
+η = 1/distance is the assignment's controllable "η" and α = 1, β = 2 weight
+pheromone against it; light 2-opt runs per ant. The update mechanism is
+evaporation every iteration (rate 0.2, with a small positive pheromone
+floor) plus deposits on the iteration best and, at half strength, the
+global best. Escape from local optima comes from that combination: the
+floor keeps every edge selectable forever, so the stochastic construction
+can always leave a basin the pheromone has concentrated on. ACO produced
 the best feasible X-n101-k25 result of the first full run (25.45%, since
 surpassed by the tuned GA) — its constructive nature
 sidesteps the frozen-local-moves problem there — at the price of the highest
@@ -640,6 +646,39 @@ local-search stack dominates with roughly O(n²) per best-improvement pass
 The perturbation adds exploration overhead per iteration, but it is
 exactly what lets the search escape local optima that the deterministic
 stack alone cannot leave.
+
+### 6.8 Assignment notes: initialization, parameter control, parallelism
+
+Three of the assignment's explicit notes deserve a direct answer:
+
+- **Greedy initialization (note 4).** As recommended, every solver —
+  the six comparison algorithms and ILS — starts from a greedy solution:
+  the multi-stage baseline's first stage is Clarke-Wright savings
+  construction, and the metaheuristics improve from there rather than
+  from a random state.
+- **Stiffness-parameter control (notes 5–7).** The parameters the
+  assignment names are controlled as follows. SA's schedule was the main
+  tuning win (T₀ = 500, cooling 0.9995 — Section 6.1). Tabu's neighborhood
+  is defined per step by the shared relocate/swap/2-opt moves, with a
+  FIFO tenure of n = 30 and aspiration on a new global best; the tenure
+  was kept static after the tuning pass. ACO runs with static α = 1,
+  β = 2 (Section 6.3); dynamic adjustment of α/β during the run was not
+  implemented and is listed as future work. The project's realized
+  *dynamic* parameter mechanism is ALNS: its operator weights adapt
+  online to operator performance (reaction rate 0.2), and its Metropolis
+  acceptance takes worsening repairs with probability exp(−Δ/T) under
+  T₀ = 100, cooling 0.995 and a positive temperature floor — the tuned
+  knob that lets ALNS keep accepting mildly worse solutions late in the
+  run instead of freezing (note 7).
+- **Parallelism (note 3).** These meta-heuristics parallelize naturally,
+  as the assignment points out: independent seeds and instances are
+  embarrassingly parallel, ACO's ants within an iteration are independent
+  constructions, and GA-Island is *explicitly* a parallel structure —
+  islands evolve independently and only exchange elites through ring
+  migration. All reported runs are deliberately single-threaded
+  single-process for fairness and exact reproducibility (one timeout, one
+  seed, one core), so no parallel speedup is claimed; the design leaves
+  the parallel axes available at zero algorithmic cost.
 
 ## 7. Ackley Adaptations
 
@@ -1079,6 +1118,12 @@ detailed below.
   `python scripts/generate_route_visualizations.py` and
   `python scripts/generate_convergence_figures.py`, then
   `python scripts/export_report_pdf.py` for this PDF
+- Submission item (b) — "run programs (EXE)" — is delivered by the
+  `a3.py` unified entry point with the `run_a3.sh` / `run_a3.bat`
+  wrappers, plus a PyInstaller build script
+  (`scripts/build_exe_windows.bat`, with `requirements-build.txt` for the
+  pinned build tool) that produces a standalone `a3.exe`; per coding
+  rule 7 no binary file is committed or included in the source archive.
 - Audit (development repo): `python scripts/audit_submission.py --check-results --check-pdf`
 - Audit (clean source package, no results/ needed):
   `python scripts/audit_submission.py --submission-package` or `python a3.py audit-package`
