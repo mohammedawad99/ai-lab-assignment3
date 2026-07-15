@@ -60,7 +60,7 @@ def test_wrappers_and_build_scripts_exist():
 
 
 def test_readme_documents_the_entrypoint():
-    text = (REPO_ROOT / "README.md").read_text()
+    text = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     assert "a3.py" in text
     assert "Executable / run commands" in text
 

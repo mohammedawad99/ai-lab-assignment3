@@ -30,7 +30,7 @@ def test_verifier_passes_on_current_repo():
 
 
 def test_headline_best_gaps_supported_by_summary_csv():
-    text = REPORT.read_text()
+    text = REPORT.read_text(encoding="utf-8")
     rows = read_rows("cvrp_all_policy_effective_summary.csv")
     for inst in INSTANCES:
         best = min(float(r["best_gap_percent"]) for r in rows
@@ -40,7 +40,7 @@ def test_headline_best_gaps_supported_by_summary_csv():
 
 
 def test_mean_gaps_supported_by_mean_gaps_csv():
-    text = REPORT.read_text()
+    text = REPORT.read_text(encoding="utf-8")
     for row in read_rows("cvrp_algorithm_mean_gaps.csv"):
         mean = float(row["mean_best_gap_percent"])
         assert f"{mean:.3f}" in text or f"{mean:.2f}" in text, \
@@ -48,7 +48,7 @@ def test_mean_gaps_supported_by_mean_gaps_csv():
 
 
 def test_seed_source_statement_not_contradictory():
-    text = REPORT.read_text()
+    text = REPORT.read_text(encoding="utf-8")
     # canonical 3-seed statement present
     assert "seeds 42, 43 and 44" in text
     assert "canonical source of every headline table" in text
@@ -62,7 +62,7 @@ def test_seed_source_statement_not_contradictory():
 
 
 def test_bnb_consistency_still_enforced():
-    text = REPORT.read_text()
+    text = REPORT.read_text(encoding="utf-8")
     by_algo = {r["algorithm"]: r for r in read_rows("cvrp_algorithm_mean_gaps.csv")}
     bnb, base = by_algo["cvrp_bnb_lds"], by_algo["baseline"]
     mean = sum(float(bnb[i]) for i in INSTANCES) / len(INSTANCES)

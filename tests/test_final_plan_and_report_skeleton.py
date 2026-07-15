@@ -66,7 +66,7 @@ def test_build_all_commands_and_write(tmp_path):
 
     path = write_command_file(commands, tmp_path / "sub" / "commands.txt")
     assert path.exists()
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     assert "# ---- cvrp ----" in text
     assert "# ---- assets ----" in text
 
@@ -109,7 +109,7 @@ def test_cli_require_official_data_when_present():
 # ---------- report skeleton ----------
 
 def test_report_skeleton_exists_with_sections():
-    text = REPORT_PATH.read_text()
+    text = REPORT_PATH.read_text(encoding="utf-8")
     for heading in [
         "# Assignment 3 Report",
         "## 1. Introduction",
@@ -131,7 +131,7 @@ def test_report_skeleton_exists_with_sections():
 
 
 def test_report_skeleton_placeholders_and_facts():
-    text = REPORT_PATH.read_text()
+    text = REPORT_PATH.read_text(encoding="utf-8")
     # since Stage 9-C the report is filled, so no placeholders remain
     assert "[fill after final run" not in text
     assert "d = 10" in text
@@ -142,6 +142,6 @@ def test_report_skeleton_placeholders_and_facts():
 
 
 def test_report_skeleton_makes_no_final_claims():
-    text = REPORT_PATH.read_text().lower()
+    text = REPORT_PATH.read_text(encoding="utf-8").lower()
     for phrase in ["we prove", "best overall", "final benchmark shows"]:
         assert phrase not in text

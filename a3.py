@@ -74,6 +74,13 @@ def cmd_audit(_args):
     return code
 
 
+def cmd_audit_package(_args):
+    """Audit a clean source package: needs report/evidence and the PDF,
+    but no generated results/ tree (see audit_submission.py)."""
+    return run(python_script("scripts/audit_submission.py",
+                             "--submission-package"))
+
+
 def cmd_test(_args):
     return run(python_script("-m", "pytest"))
 
@@ -136,6 +143,8 @@ COMMANDS = {
     "rushhour-direct": (cmd_rushhour_direct,
                         "smoke-run the direct no-A* GP/GEP planner bonus"),
     "audit": (cmd_audit, "run the consistency gate and the submission audit"),
+    "audit-package": (cmd_audit_package,
+                      "audit a clean source package (no results/ needed)"),
     "test": (cmd_test, "run the pytest suite"),
     "report-info": (cmd_report_info, "print report PDF/evidence/figure info"),
     "cvrp-example": (cmd_cvrp_example,

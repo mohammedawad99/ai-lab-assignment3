@@ -86,7 +86,7 @@ def test_write_evaluation_csv(tmp_path):
     evaluation = evaluate_heuristic("zero", zero_heuristic, load_puzzles())
     csv_path = tmp_path / "sub" / "eval.csv"
     write_evaluation_csv([evaluation], csv_path)
-    lines = csv_path.read_text().splitlines()
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
     assert lines[0] == ",".join(CSV_HEADER)
     assert len(lines) == 2
     assert lines[1].startswith("zero,3,")
@@ -114,7 +114,7 @@ def test_cli_writes_csv(tmp_path):
     proc = run_cli("--output", str(csv_path))
     assert proc.returncode == 0
     assert csv_path.exists()
-    assert csv_path.read_text().splitlines()[0] == ",".join(CSV_HEADER)
+    assert csv_path.read_text(encoding="utf-8").splitlines()[0] == ",".join(CSV_HEADER)
 
 
 def test_cli_unknown_heuristic_fails():

@@ -51,14 +51,14 @@ def test_all_required_figures_exist():
 
 
 def test_report_references_figures():
-    text = REPORT_MD.read_text()
+    text = REPORT_MD.read_text(encoding="utf-8")
     references = [name for name in REQUIRED_FIGURES
                   if f"figures/{name}" in text]
     assert len(references) >= 8, references
 
 
 def test_report_content_still_honest():
-    text = REPORT_MD.read_text()
+    text = REPORT_MD.read_text(encoding="utf-8")
     assert "[fill after final run]" not in text
     assert "X-n101-k25" in text
     assert "25.45" in text  # the weak gap stays visible
@@ -76,7 +76,12 @@ def test_pdf_is_visual():
 def test_no_forbidden_files():
     assert not (REPO_ROOT / "report.md").exists()
     assert not (REPO_ROOT / "report.pdf").exists()
-    assert not (REPO_ROOT / "docs").exists()
+    # docs/ must never be tracked (an untracked local copy of the course
+    # PDFs is allowed; it is not part of a git-based submission package)
+    import subprocess
+    tracked = subprocess.run(["git", "ls-files", "docs"], capture_output=True,
+                             text=True, cwd=REPO_ROOT).stdout.strip()
+    assert tracked == ""
     assert not (REPO_ROOT / "AI_USAGE.md").exists()
     zips = [p for p in REPO_ROOT.rglob("*.zip")
             if ".venv" not in p.parts and ".git" not in p.parts]

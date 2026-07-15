@@ -99,6 +99,6 @@ def test_cli_writes_csv(tmp_path):
                    "--seed", "42", "--output", str(csv_path))
     assert proc.returncode == 0
     assert csv_path.exists()
-    lines = csv_path.read_text().splitlines()
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
     assert len(lines) == 2
     assert lines[1].startswith("ackley_bnb_lds,")

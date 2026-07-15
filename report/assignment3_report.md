@@ -1,6 +1,13 @@
 # Assignment 3 Report
 
-Course 203.3630 — Artificial Intelligence Lab.
+**Course:** 203.3630 — Artificial Intelligence Lab, University of Haifa
+**Lecturer:** Shay Bushinsky
+**Assignment:** Experiment 3 — Multi-Step Heuristics, Meta-Heuristics and
+Swarm Intelligence (CVRP), with generative evolutionary AI (Rush Hour GP/GEP)
+**Submitted by:** Mohamed Awad — ID: (fill in before submission)
+**Submission:** individual (pair submission not used)
+**Date:** July 2026
+**Repository:** https://github.com/mohammedawad99/ai-lab-assignment3
 
 All numbers in this report come from the generated result files under
 `results/final_experiments/` (final run with seeds 42, 43, 44 from
@@ -41,6 +48,17 @@ on M-n200-k17 with no project-best regressions, and the Ackley results
 were left unchanged. All numbers in this report come from that final
 rerun.
 
+On top of the six comparison algorithms, the project implements the
+assignment's iterated-local-search requirement as an **explicit ILS
+driver** (Section 6.7): a separate solver that alternates a
+ruin-and-recreate perturbation (exploration) with the project's strongest
+deterministic local-search stack (exploitation) and applies an acceptance
+rule between complete local optima. ILS was benchmarked under exactly the
+same seeds, budgets and per-instance timeouts as the six algorithms and is
+reported separately from the six-algorithm comparison tables; it produced
+the project's overall best results on two instances (1.5219% on A-n80-k10
+and 4.9072% on M-n200-k17, Section 6.7).
+
 ## 2. Implementation Overview
 
 ### 2.1 Project structure
@@ -51,7 +69,7 @@ validation, baseline) with `src/cvrp/solvers/` (the six algorithms),
 `src/rushhour/` (board, A*, safe evaluator, GP/GEP comparison), `src/gp/`
 and `src/gep/` (separate frameworks), and `src/experiments/` (runners,
 summaries, report assets). `scripts/` holds the CLI entry points and
-`tests/` the pytest suite (343 tests at the time of the final run).
+`tests/` the pytest suite (390 tests at the time of this report).
 
 ### 2.2 Reproducibility and command-line interface
 
@@ -71,6 +89,24 @@ the exact validation errors — nothing is silently fixed. Rush Hour
 heuristic evaluation runs A* under a node cap, a per-puzzle time cap and a
 total time budget, and an exception inside a candidate heuristic is
 recorded as a failed puzzle instead of crashing the run.
+
+### 2.4 Solution output format and the 80.64 sanity check
+
+Every CVRP solver prints the assignment's output format: the heuristic
+value (total cost) on the first line, then one line per used vehicle with
+the visited city indices in order, starting and ending at the depot index
+0 (`--include-unused-vehicles` also prints `0 0` lines for idle vehicles).
+On the assignment's 5-city example (depot at the origin, four unit-demand-3
+cities, capacity 10) the multi-stage baseline reproduces the expected
+sub-optimal reference solution and cost:
+
+    80.64
+    0 1 2 3 0
+    0 4 0
+
+This sanity check is automated: `python a3.py sanity` runs it, and the I/O
+tests assert the exact first line. Elapsed and CPU times are printed with
+every run (Section 9 reports both for all algorithms).
 
 ## 3. Part A — Ackley Function
 
@@ -223,7 +259,16 @@ stated as-is (overall mean 7.77%, beating the baseline on 2/6).
 Mean runtime per run grows with instance size as expected (log scale). The
 values are averages over all seven algorithms, so the cheap methods (SA,
 baseline) pull the mean down; ACO alone accounts for most of the time on
-the two largest instances.
+the two largest instances. These are wall-clock (elapsed) means; the
+matching CPU-time means are reported per algorithm in the Section 9 table —
+elapsed and CPU time are recorded together for every single run.
+
+The tables above are the six-algorithm comparison required by the
+assignment and are unchanged by the later ILS stage. The explicit ILS
+driver (Section 6.7) ran separately under the same seeds, budgets and
+timeouts; it improved the project-best gaps on A-n80-k10 (2.9466% →
+1.5219%) and M-n200-k17 (5.5139% → 4.9072%) while not beating GA-Island
+on X-n101-k25.
 
 ### 4.1 Route visualizations
 
@@ -509,6 +554,90 @@ instances B&B/LDS still returns its incumbent (overall mean gap 7.77%,
 beating the baseline on 2/6). It remains exact-inspired, not a full exact
 solver for these sizes.
 
+### 6.7 Iterated Local Search (ILS) — the explicit iterated driver
+
+The lecture framed the meta-heuristics as instances of an abstract
+iterated local search; this section is the explicit implementation of that
+requirement (`src/cvrp/solvers/ils.py`, Stage 13-A). ILS is **not** a
+rebrand of SA, Tabu or ACO — those walk one random neighbor at a time,
+while ILS jumps between complete **local optima**, and its module imports
+none of the other solvers (a dedicated test enforces this). One ILS
+iteration has the classic four ingredients:
+
+1. **Initial solution:** the multi-stage baseline (Section 5), improved to
+   a first local optimum by the deterministic local-search stack.
+2. **Perturbation (exploration):** a ruin-and-recreate kick removes a
+   random subset of customers — the kick strength, ~10% of the customers
+   (2 to 30) — and greedily reinserts each at its cheapest
+   capacity-feasible position in random order. Rebuilding several routes
+   at once deliberately throws the search out of the current local
+   optimum, far beyond any single relocate/swap/2-opt step. The kick only
+   reuses existing route slots, so the vehicle limit is never violated; if
+   the greedy repair cannot place every removed customer, the kick is
+   rejected and the previous solution is kept (never an infeasible state).
+3. **Local search (exploitation):** the strongest deterministic stack in
+   the project — intra-route 2-opt plus inter-route relocate, swap, Or-opt
+   and 2-opt*, with k = 10 candidate lists on instances with at least 60
+   customers (the same gating the other solvers use).
+4. **Acceptance criterion (at the ILS level):** an improved local optimum
+   is always accepted; a worse one is accepted only within a 2% relative
+   threshold (threshold acceptance) — this is the exploration/exploitation
+   dial: 0% would be a pure descent that stalls in the first good basin,
+   a large threshold would degenerate toward a random restart. After 20
+   iterations without a new global best, the search restarts from the
+   best solution and the kick strength grows by one (capped at 2× the
+   base), widening exploration instead of looping. Every accepted
+   candidate and the final best are validated for feasibility.
+
+**Results** (same plan as the six algorithms: seeds 42/43/44, per-instance
+budgets 300–1200 iterations and timeouts 30–300 s; evidence snapshots
+`report/evidence/cvrp_ils_runs.csv`, `cvrp_ils_summary.csv`,
+`cvrp_ils_manifest.json`; 18/18 runs feasible):
+
+| instance | best cost | best gap | mean gap | std cost | mean elapsed (s) | mean CPU (s) |
+| --- | --- | --- | --- | --- | --- | --- |
+| P-n16-k8 | 451.95 | 0.4327% | 0.4327% | 0.00 | 0.15 | 0.15 |
+| E-n22-k4 | 375.28 | 0.0746% | 0.0746% | 0.00 | 0.13 | 0.13 |
+| A-n32-k5 | 787.08 | 0.3931% | 0.3931% | 0.00 | 0.52 | 0.52 |
+| A-n80-k10 | 1789.83 | **1.5219%** | 1.8268% | 5.34 | 6.16 | 6.16 |
+| X-n101-k25 | 34613.14 | 25.4508% | 26.3938% | 225.65 | 0.69 | 0.69 |
+| M-n200-k17 | 1337.57 | **4.9072%** | 5.4776% | 9.24 | 64.81 | 64.80 |
+
+![ILS vs baseline and the six algorithms](figures/cvrp_ils_comparison.png)
+
+The figure compares, per instance (log scale, lower is better), the
+best-of-seeds gap of the multi-stage baseline, the best of the six
+comparison algorithms, and ILS. ILS's mean best-of-seeds gap over the six
+instances is **5.463%** (mean over all seeds 5.766%) — below the best of
+the six (ALNS, 5.851%). On A-n80-k10 (1.5219% vs 2.9466%) and M-n200-k17
+(4.9072% vs 5.5139%) ILS holds the new overall project-best results: the
+compound kick plus the full deterministic re-optimization reaches basins
+the one-move walkers never enter. On E-n22-k4 and A-n32-k5 it exactly ties
+the project best, and on P-n16-k8 it stops at 0.4327% (vs 0.2967%): every
+seed hits the same local optimum there, and the 2%-threshold acceptance
+never wanders far enough on a 15-customer instance where one customer is
+1% of the solution.
+
+**Honest X-n101-k25 note:** ILS reaches 25.4508% — better than the
+baseline (27.08%) but behind GA-Island (23.0063%). The cause is the same
+capacity-packing effect from Section 4.4: with 3 units of fleet slack the
+greedy reinsertion almost never finds a feasible slot for a removed
+customer, so most kicks are rejected and ILS burns its full 1000-iteration
+budget in under a second without real exploration. A packing-aware kick
+(ejection-chain style) is the natural next step and is listed as future
+work. Note also that on A-n80-k10 and M-n200-k17 the iteration budget,
+not the timeout, was the binding limit (6 s of 120 s and 65 s of 300 s
+used) — the comparison stays fair because ILS received exactly the same
+budget and timeout values as the six algorithms.
+
+**Complexity:** ILS ≈ iterations × (perturbation + local search). The
+kick costs O(strength · n²) for its cheapest-insertion scans; the
+local-search stack dominates with roughly O(n²) per best-improvement pass
+(O(1) delta per candidate move, optionally pruned by candidate lists).
+The perturbation adds exploration overhead per iteration, but it is
+exactly what lets the search escape local optima that the deterministic
+stack alone cannot leave.
+
 ## 7. Ackley Adaptations
 
 SA and Tabu Search are natural continuous methods here (Gaussian steps; a
@@ -568,6 +697,18 @@ needs 13,580, and blocker_depth — which also penalizes blockers that are
 themselves stuck — needs only 10,338. That monotone ladder is what makes
 the set a meaningful benchmark.
 
+The same ladder ranks the manual heuristics on all three assignment axes —
+quality, computational complexity, and time to solve (total elapsed/CPU
+over the 14 puzzles, from `rushhour_hard_manual_summary.csv`): `zero`
+(9/14 solved, 11.85 s elapsed / 11.85 s CPU) is O(1) per state but wastes
+A* expansions; `blocking` (13/14, 8.40 s) adds one O(cars) scan of the
+exit row; `blocking_distance` (13/14, 5.89 s) adds the red-car distance at
+the same O(cars) cost; and `blocker_depth` (13/14, 5.57 s) pays a full
+legal-move generation per state to spot blockers that are themselves
+stuck — the most expensive evaluation per state, yet the fastest overall
+because better guidance saves thousands of expansions. The ranking lesson is explicit: a slightly costlier, more
+informed heuristic wins on wall clock, not just on node counts.
+
 GP and GEP were then run with identical budgets (population 30, 20
 generations, seeds 42–44; training on the 4 original puzzles plus the 3
 easiest hard ones; evaluation on all 14):
@@ -596,7 +737,21 @@ guidance than the hand-written baselines here.
 0.01% difference, while the per-seed spread within each method is ~30,000
 fitness points (GP's worst seed drops to 91200, GEP's to 101946). Seed
 variance dominates the method difference, so no winner is declared.
-Expression diversity is 1.00 for both. Notably, no run solves 14/14 under
+Expression diversity is 1.00 for both. **Production (evolution) time**
+does separate them: on the hard benchmark one GP run takes 60.3 s on
+average (65.1/67.4/48.5 for seeds 42–44) against GEP's 44.0 s
+(55.3/30.3/46.3), from `rushhour_hard_gp_gep_runs.csv`; the small
+4-puzzle comparison shows the same ratio (GP 1.21 s vs GEP 0.77 s mean).
+GEP's flat point/one-/two-point operators on a fixed-length gene string
+are simply cheaper than GP's subtree crossover and mutation, and its
+Karva decoding keeps expressions shorter — the same parsimony that shows
+up in its more compact best expressions. **Low computational complexity
+is rewarded in both fitness designs**, as the assignment asks: in the
+A*-guided fitness implicitly — every candidate runs under a 2 s
+per-puzzle time cap, so an expensive-to-evaluate expression times out and
+loses 2000 fitness per timeout — and in the direct-planner fitness
+(Section 8.2) explicitly, with a parsimony term of −2 per expression
+node. Notably, no run solves 14/14 under
 the caps — the hardest puzzle needs more than the 15,000-node budget with
 any evolved or manual guide — which means the benchmark still has headroom
 and the results are not saturated like the old 4-puzzle set. (Numbers this
@@ -676,10 +831,39 @@ The main tables and figures are in Sections 3 (Ackley), 4 (CVRP) and 8
 small evidence snapshots under `report/evidence/`. The raw per-run rows
 live under `results/final_experiments/raw/` (144 CVRP rows including both
 ALNS variants, 21 Ackley rows) plus the hard Rush Hour benchmark under
-`results/final_experiments/rushhour_hard/`; the aggregated tables are
+`results/final_experiments/rushhour_hard/` and the ILS evidence under
+`results/final_experiments/ils/`; the aggregated tables are
 under `results/final_experiments/summary/`. The execution manifest
 (`final_execution_manifest.json`) records what ran, with which budgets,
 the tuned settings, and the pre-declared ALNS policy.
+
+The compact CVRP statistics below aggregate the per-instance summary rows
+over the six instances (policy view for ALNS; ILS from its own evidence
+run under identical seeds/budgets/timeouts). "Mean best gap" averages the
+best-of-seeds gap per instance; "mean gap" averages over all seeds; "std
+cost" is the mean per-instance standard deviation of the solution cost
+across seeds (0.00 = every seed found the same cost); elapsed is wall
+clock and CPU time is process time, both averaged per run. Every single
+run of every algorithm was feasible (18 runs each: 6 instances × 3 seeds).
+
+| algorithm | mean best gap | mean gap | std cost | elapsed (s) | CPU time (s) | feasible |
+| --- | --- | --- | --- | --- | --- | --- |
+| ils (explicit driver) | **5.463%** | 5.766% | 40.04 | 12.08 | 12.08 | 18/18 |
+| alns (policy + advanced) | 5.851% | 7.029% | 40.10 | 4.72 | 4.58 | 18/18 |
+| sa (tuned) | 6.740% | 7.430% | 25.30 | 3.48 | 3.40 | 18/18 |
+| ga_island (tuned + advanced) | 6.958% | 7.102% | 35.49 | 2.77 | 2.72 | 18/18 |
+| aco | 7.558% | 7.739% | 43.88 | 24.13 | 23.49 | 18/18 |
+| bnb_lds (small-instance mode) | 7.765% | 7.765% | 0.00 | 1.36 | 1.32 | 18/18 |
+| tabu | 8.092% | 8.120% | 0.42 | 3.16 | 3.10 | 18/18 |
+| baseline | 8.703% | 8.703% | 0.00 | 0.02 | 0.02 | 18/18 |
+
+Elapsed and CPU means are nearly identical for every method — the solvers
+are single-threaded pure Python with no I/O in the hot loop, so wall
+clock ≈ CPU time; only ACO shows a visible difference (24.13 vs 23.49 s),
+i.e. a small fraction of its wall clock is spent off-CPU. The
+deterministic methods (baseline, B&B/LDS) and near-deterministic Tabu
+have (near-)zero std; the stochastic improvers pay seed variance for
+their better means.
 
 ## 10. Analysis and Discussion
 
@@ -717,6 +901,19 @@ the tuned settings, and the pre-declared ALNS policy.
   fitness points — far larger than the method difference. GEP's best
   expressions stay visibly more compact. Both frameworks are genuinely
   different representations, not renames.
+- **ILS and the exploration/exploitation trade-off.** The explicit ILS
+  driver (Section 6.7) makes the trade-off visible as two separate dials:
+  kick strength (how far exploration jumps) and acceptance threshold (how
+  much exploitation is allowed to relax). With ~10% kicks and a 2%
+  threshold it produced the project's best A-n80-k10 and M-n200-k17
+  results and the lowest mean best gap (5.463%), showing that restarting a
+  strong deterministic local search from perturbed local optima can beat
+  the adaptive one-move walkers. Its two failure modes are equally
+  instructive: on P-n16-k8 the threshold is too tight relative to the
+  instance's coarse cost granularity (it converges to the same local
+  optimum on every seed), and on X-n101-k25 the kick itself is starved —
+  the tight packing rejects nearly every greedy reinsertion, so
+  exploration never actually happens.
 - **Runtime vs quality.** ALNS delivers the best average CVRP quality at
   moderate runtime; ACO remains the most expensive; tuned SA uses its
   budget instead of leaving it idle. B&B/LDS with the small-instance mode
@@ -741,6 +938,36 @@ the tuned settings, and the pre-declared ALNS policy.
   only, and no claim of class-leading performance is made without an
   external comparison.
 
+### 10.1 Original engineering choices
+
+Beyond the required algorithms, several design decisions in this project
+are our own engineering additions, all implemented and evidenced rather
+than proposed:
+
+- **Report-vs-evidence consistency gate** — `verify_report_matches_csv.py`
+  plus dedicated tests re-derive every headline number in this report from
+  the committed evidence CSVs; the submission audit runs the gate, so a
+  number cannot silently drift from its data.
+- **Subset-sum vehicle repair** (Section 5) — the dynamic-programming
+  packing that made X-n101-k25 feasible at all.
+- **Size-gated advanced local search** (Section 4.4) — inter-route
+  swap/Or-opt/2-opt* with candidate lists, activated by customer count
+  after validation showed a small-instance regression.
+- **Ruin-and-recreate ILS kick with adaptive strength** (Section 6.7) —
+  restart acceptance that widens the kick on stagnation, which produced
+  two new project-best results.
+- **Pre-declared ALNS policy** (Section 4) — the enhanced/basic selection
+  rule was fixed before the final rerun, so no cherry-picking after the
+  fact; both variants' raw rows are kept.
+- **Measured-difficulty hard Rush Hour benchmark and the no-A* direct
+  planner bonus** (Sections 8.1–8.2) — including the safety-capped
+  evaluator that lets evolution run untrusted heuristic code safely.
+- **Smoke/final isolation and resumable final runner** — smoke runs write
+  to separate directories and the final suite skips finished raw CSVs, so
+  partial reruns cannot contaminate the canonical evidence.
+- **Honest regression reporting** — the ALNS-on-X and ALNS-on-M
+  regressions are disclosed and analyzed instead of tuned away.
+
 ## 11. Complexity and Practical Considerations
 
 - **Feasibility checking** is O(n) per solution and is run on every
@@ -763,16 +990,41 @@ the tuned settings, and the pre-declared ALNS policy.
   more work. Budgets differ per algorithm in meaning (iterations vs
   generations vs nodes), which is why the timeout is the binding fairness
   control on the large instances.
+- **ILS cost structure.** One ILS iteration = one kick (O(strength · n²)
+  cheapest-insertion scans) + one full deterministic re-optimization
+  (O(n²)-per-pass best-improvement stack) — far heavier per iteration than
+  SA's single sampled neighbor, which is why ILS runs hundreds of
+  iterations where SA runs hundreds of thousands. The evidence shows the
+  trade paid off on the two instances where deep re-optimization matters
+  (A-n80-k10, M-n200-k17) and was wasted where the kick cannot act
+  (X-n101-k25).
 - **No optimality claims.** Everything here is heuristic or time-limited;
   the gaps against BKS quantify exactly how far the results are from the
   best known solutions.
 
 ## 12. Use of AI Tools
 
-AI tools were used as coding and debugging assistants during the project.
-The final code and this report were reviewed and understood by the student.
-Any generated code was tested and adjusted through the project's test suite
-and staged workflow.
+This declaration follows the course's policy on AI tools and code
+generators. AI tools were used substantially during development, as
+detailed below.
+
+- **Tool used:** Claude (Anthropic), operated through the Claude Code CLI
+  assistant, was used as a substantial aid across the project's staged
+  workflow: planning the stage breakdown, writing and refactoring code,
+  writing tests, debugging failures, reviewing consistency between the
+  report and the evidence files, and polishing this report's text.
+- **What the AI did not do:** no experimental number in this report was
+  produced or edited by hand or by the assistant directly — every value
+  comes from running the committed scripts on this machine, and the
+  consistency gate (`scripts/verify_report_matches_csv.py`) plus the test
+  suite re-check the report against the evidence CSVs on every run.
+- **Responsibility and understanding:** the submitter reviewed all
+  generated code, takes full responsibility for it, and can explain every
+  line, as the course requires. Code that could not be explained was
+  rewritten until it could be.
+- **External code:** no third-party or copied code is included beyond the
+  declared open-source libraries in `requirements.txt` (numpy, matplotlib,
+  pandas, pytest); no unreviewed generated code was submitted.
 
 ## 13. Reproducibility
 
@@ -785,6 +1037,10 @@ and staged workflow.
   `python scripts/print_final_experiment_plan.py --require-official-data`
 - Full final tuned run (resumable):
   `python scripts/run_final_experiments.py --tuned-cvrp configs/tuned_cvrp_settings.json --rushhour-hard configs/rushhour_hard_benchmark.json`
+- Explicit ILS on one instance:
+  `python scripts/run_cvrp_ils.py --instance data/official_cvrp/A-n80-k10.vrp --iterations 800 --seed 42 --timeout 120`
+- ILS evidence suite (same plan seeds/budgets/timeouts as the six):
+  `python scripts/run_ils_evidence.py --refresh-evidence`
 - Hard Rush Hour benchmark on its own:
   `python scripts/run_gp_gep_hard_benchmark.py --puzzles examples/rushhour_hard_eval.txt --seeds 42 43 44`
 - Direct no-A* planner bonus (Section 8.2):
@@ -801,7 +1057,9 @@ and staged workflow.
   `python scripts/generate_route_visualizations.py` and
   `python scripts/generate_convergence_figures.py`, then
   `python scripts/export_report_pdf.py` for this PDF
-- Audit: `python scripts/audit_submission.py --check-results --check-pdf`
+- Audit (development repo): `python scripts/audit_submission.py --check-results --check-pdf`
+- Audit (clean source package, no results/ needed):
+  `python scripts/audit_submission.py --submission-package` or `python a3.py audit-package`
 - Report facts: `python scripts/extract_report_numbers.py`
 - Small evidence snapshots of the result files cited by this report are
   committed under `report/evidence/` (summaries, GP/GEP runs, execution
@@ -825,8 +1083,13 @@ feasibility, report-vs-evidence consistency, and forbidden artifacts:
 
 ![Submission audit output](figures/terminal_audit_pass.png)
 
-And the extracted report numbers, printed straight from the final CSVs
-(the same numbers used in the tables above):
+And the extracted report numbers, printed straight from the final CSVs —
+the same CVRP and Ackley numbers used in the tables above. (Two reading
+notes: the per-algorithm mean gaps in this printout average *all* raw
+rows, including both ALNS variants, so they differ by design from the
+policy-view table in Section 4; and its GP/GEP block prints the
+historical 4-puzzle smoke comparison, not the Section 8.1 hard
+benchmark.)
 
 ![Final result numbers](figures/terminal_final_rows.png)
 
@@ -835,14 +1098,20 @@ And the extracted report numbers, printed straight from the final CSVs
 The implementation covers everything the assignment asks for: the six
 required search algorithms on both the Ackley warm-up and the six official
 CVRP instances, an explicit multi-stage CVRP heuristic with an honest
-feasibility-repair story, and separate GP and GEP frameworks for evolving
-Rush Hour heuristics evaluated through A*. The final rerun (144 CVRP rows,
-all feasible), which combines the tuned settings with the Stage 11
-advanced local-search moves, holds the project's best gaps: 0.07–0.39% on
+feasibility-repair story, an explicit Iterated Local Search driver on top
+of them, and separate GP and GEP frameworks for evolving
+Rush Hour heuristics evaluated through A*. The six-algorithm final rerun
+(144 CVRP rows, all feasible), which combines the tuned settings with the
+Stage 11 advanced local-search moves, reached 0.07–0.39% on
 the three small instances, 2.95% on A-n80-k10, 5.51% on M-n200-k17, and
 23.01% on the capacity-tight X-n101-k25 — still large and reported as a
 real limitation rather than smoothed over, along with the one
 algorithm-level regression the advanced pass caused (enhanced ALNS on X).
+The explicit ILS driver then pushed the overall project bests further on
+two instances (A-n80-k10 1.5219%, M-n200-k17 4.9072%, all 18 ILS runs
+feasible under the same budgets) and holds the lowest mean best gap
+(5.463%), while honestly failing to explore on X-n101-k25, where the
+tight packing rejects its kicks.
 ALNS with the pre-declared hybrid policy keeps the lowest mean gap and
 beats the multi-stage baseline on all six instances, now joined by the
 memetic GA-Island; B&B/LDS, after gaining a small-instance deep-search
@@ -860,6 +1129,44 @@ best hand-written direct policy (9/14) — while remaining honestly weaker
 than the A*-guided search (13/14). The main open improvements are full
 ejection chains for the
 capacity-tight CVRP instances (the Stage 11 swap/Or-opt/2-opt* moves
-recovered only part of the X-n101-k25 gap), a stronger bound to extend
+recovered only part of the X-n101-k25 gap, and a packing-aware
+ejection-chain kick would also unfreeze the ILS perturbation there), a
+stronger bound to extend
 B&B/LDS beyond 25 customers, and pushing the hard Rush Hour set until the
 frameworks separate.
+
+## 15. References
+
+1. S. Bushinsky. *Artificial Intelligence Lab (203.3630), Experiment 3:
+   Multi-Step Heuristics, Meta-Heuristics, Swarm Intelligence — CVRP.*
+   Course assignment handout and lecture materials, University of Haifa,
+   2026.
+2. G. Clarke and J. W. Wright. "Scheduling of Vehicles from a Central
+   Depot to a Number of Delivery Points." *Operations Research* 12(4),
+   1964.
+3. S. Kirkpatrick, C. D. Gelatt and M. P. Vecchi. "Optimization by
+   Simulated Annealing." *Science* 220(4598), 1983.
+4. F. Glover. "Tabu Search — Part I." *ORSA Journal on Computing* 1(3),
+   1989.
+5. M. Dorigo and T. Stützle. *Ant Colony Optimization.* MIT Press, 2004.
+6. S. Ropke and D. Pisinger. "An Adaptive Large Neighborhood Search
+   Heuristic for the Pickup and Delivery Problem with Time Windows."
+   *Transportation Science* 40(4), 2006.
+7. W. D. Harvey and M. L. Ginsberg. "Limited Discrepancy Search."
+   *Proceedings of IJCAI-95*, 1995.
+8. H. R. Lourenço, O. C. Martin and T. Stützle. "Iterated Local Search."
+   In *Handbook of Metaheuristics*, Kluwer, 2003.
+9. D. H. Ackley. *A Connectionist Machine for Genetic Hillclimbing.*
+   Kluwer, 1987 (the Ackley test function).
+10. J. R. Koza. *Genetic Programming: On the Programming of Computers by
+    Means of Natural Selection.* MIT Press, 1992.
+11. C. Ferreira. "Gene Expression Programming: A New Adaptive Algorithm
+    for Solving Problems." *Complex Systems* 13(2), 2001.
+12. P. E. Hart, N. J. Nilsson and B. Raphael. "A Formal Basis for the
+    Heuristic Determination of Minimum Cost Paths." *IEEE Transactions on
+    Systems Science and Cybernetics* 4(2), 1968 (A*).
+13. E. Uchoa, D. Pecin, A. Pessoa, M. Poggi, T. Vidal and A. Subramanian.
+    "New Benchmark Instances for the Capacitated Vehicle Routing Problem."
+    *European Journal of Operational Research* 257(3), 2017 — and the
+    CVRPLIB collection, http://vrp.atd-lab.inf.puc-rio.br/ (source of the
+    six official instances and BKS values).

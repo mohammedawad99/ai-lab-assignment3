@@ -5,7 +5,8 @@ Course 203.3630 — Artificial Intelligence Lab.
 Two parts:
 - **Part A — CVRP:** solve the Capacitated Vehicle Routing Problem and compare six
   search algorithms (TS, ACO, SA, GA with Island Model, ALNS, Branch & Bound/LDS),
-  plus at least one multi-stage heuristic. An Ackley-function warm-up validates each solver.
+  plus at least one multi-stage heuristic and an explicit Iterated Local Search
+  (ILS) driver. An Ackley-function warm-up validates each solver.
 - **Part B — Generative AI:** use GP and GEP to evolve improved Rush Hour heuristics,
   evaluated by running A* with the candidate heuristic.
 
@@ -22,6 +23,9 @@ stay local under `results/` and are not committed.
 | Show help | `python a3.py --help` | or `./run_a3.sh` / `run_a3.bat` |
 | Run sanity check | `python a3.py sanity` | 80.64 baseline on the tiny example |
 | Run audit | `python a3.py audit` | consistency gate + submission audit |
+| Audit a clean source package | `python a3.py audit-package` | validates report/evidence + PDF, no `results/` needed |
+| Run ILS on one instance | `python scripts/run_cvrp_ils.py --instance examples/tiny_cvrp.vrp` | explicit Iterated Local Search (Stage 13-A) |
+| Run the ILS evidence suite | `python scripts/run_ils_evidence.py --refresh-evidence` | same seeds/budgets/timeouts as the six algorithms |
 | Run tests | `python a3.py test` | full pytest suite |
 | Run CVRP final experiments | `python scripts/run_final_experiments.py --tuned-cvrp configs/tuned_cvrp_settings.json --rushhour-hard configs/rushhour_hard_benchmark.json` | needs official `.vrp` files under `data/official_cvrp/` |
 | Run Rush Hour hard benchmark | `python scripts/run_gp_gep_hard_benchmark.py --puzzles examples/rushhour_hard_eval.txt --seeds 42 43 44` | committed summary: `python a3.py rushhour-hard-summary` |
@@ -31,7 +35,10 @@ stay local under `results/` and are not committed.
 
 ## Status
 
-Stage 12-A — unified executable entry point (`a3.py` + wrappers) on top of the audited final report and evidence under `report/`.
+Stage 13-A — explicit CVRP Iterated Local Search (solver, tests, evidence,
+figure and report section) plus final report polish, on top of the Stage 12
+unified executable entry point (`a3.py` + wrappers) and the audited final
+report and evidence under `report/`.
 
 Report figures live under `report/figures/` and the visual PDF can be
 regenerated with:
@@ -61,7 +68,7 @@ data and are not committed unless the course explicitly asks for them.
 - `src/common/` — shared utilities such as seeded RNG, elapsed+CPU timing, metrics, CSV I/O, and plotting
 - `src/ackley/` — continuous Ackley warm-up benchmark
 - `src/cvrp/` — CVRP model, distance matrix, construction heuristics, local search, and validation
-- `src/cvrp/solvers/` — solver implementations for TS, ACO, SA, GA-Island, ALNS, and B&B/LDS
+- `src/cvrp/solvers/` — solver implementations for TS, ACO, SA, GA-Island, ALNS, B&B/LDS, and the explicit ILS driver
 - `src/rushhour/` — Rush Hour board, A*, and baseline heuristics
 - `src/gp/` — Genetic Programming using expression trees
 - `src/gep/` — Gene Expression Programming using Karva genome to expression tree decoding

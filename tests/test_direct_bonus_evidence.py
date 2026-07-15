@@ -32,7 +32,7 @@ def test_direct_evidence_files_exist_and_parse():
 
 
 def test_direct_manifest_is_the_real_benchmark():
-    manifest = json.loads((EVIDENCE / "direct_planner_manifest.json").read_text())
+    manifest = json.loads((EVIDENCE / "direct_planner_manifest.json").read_text(encoding="utf-8"))
     assert manifest["smoke"] is False
     assert manifest["seeds"] == [42, 43, 44]
     assert manifest["population"] == 30
@@ -53,7 +53,7 @@ def test_gep_direct_reported_honestly():
     runs = read_rows("direct_gp_gep_runs.csv")
     gep_best = max(int(r["eval_solved"]) for r in runs
                    if r["method"] == "gep_direct")
-    text = REPORT.read_text()
+    text = REPORT.read_text(encoding="utf-8")
     assert f"{gep_best}/14" in text
     # the honest detail: GEP converged to the manual blocker_depth feature
     assert "blocker_depth" in text
@@ -66,11 +66,11 @@ def test_astar_reference_remains_stronger():
     astar_best = max(int(r["solved"]) for r in hard
                      if not r["name"].startswith("manual_"))
     assert astar_best > direct_best  # no overclaiming in either direction
-    assert f"{astar_best}/14" in REPORT.read_text()
+    assert f"{astar_best}/14" in REPORT.read_text(encoding="utf-8")
 
 
 def test_report_covers_direct_bonus():
-    text = REPORT.read_text()
+    text = REPORT.read_text(encoding="utf-8")
     assert "without A*" in text
     assert "rushhour_direct_solved_counts.png" in text
     assert "rushhour_direct_gp_gep_fitness.png" in text

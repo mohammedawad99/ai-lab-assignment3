@@ -15,7 +15,7 @@ def run_script(script, *extra):
 
 
 def test_tuned_cvrp_config():
-    config = json.loads((REPO_ROOT / "configs" / "tuned_cvrp_settings.json").read_text())
+    config = json.loads((REPO_ROOT / "configs" / "tuned_cvrp_settings.json").read_text(encoding="utf-8"))
     assert config["alns"]["enhanced_operators"] is True
     assert config["sa"]["iterations_factor"] == 50
     assert config["ga_island"]["population_size"] == 30
@@ -27,7 +27,7 @@ def test_tuned_cvrp_config():
 
 def test_hard_benchmark_config():
     config = json.loads(
-        (REPO_ROOT / "configs" / "rushhour_hard_benchmark.json").read_text())
+        (REPO_ROOT / "configs" / "rushhour_hard_benchmark.json").read_text(encoding="utf-8"))
     assert config["eval_puzzles"] == "examples/rushhour_hard_eval.txt"
     assert config["seeds"] == [42, 43, 44]
 
@@ -50,7 +50,7 @@ def test_alns_enhanced_variant_dispatch():
     from src.cvrp.io_cvrplib import parse_cvrplib
     from src.experiments.cvrp_experiments import run_one_cvrp_algorithm
     tiny = parse_cvrplib(REPO_ROOT / "examples" / "tiny_cvrp.vrp")
-    tuned = json.loads((REPO_ROOT / "configs" / "tuned_cvrp_settings.json").read_text())
+    tuned = json.loads((REPO_ROOT / "configs" / "tuned_cvrp_settings.json").read_text(encoding="utf-8"))
     row = run_one_cvrp_algorithm(tiny, "examples/tiny_cvrp.vrp", "alns_enhanced",
                                  42, 10, 5.0, tuned=tuned)
     assert row["algorithm"] == "cvrp_alns_enhanced"
@@ -74,7 +74,7 @@ def test_bnb_small_instance_mode():
     from src.experiments.cvrp_experiments import run_one_cvrp_algorithm
 
     tiny = parse_cvrplib(REPO_ROOT / "examples" / "tiny_cvrp.vrp")
-    tuned = json.loads((REPO_ROOT / "configs" / "tuned_cvrp_settings.json").read_text())
+    tuned = json.loads((REPO_ROOT / "configs" / "tuned_cvrp_settings.json").read_text(encoding="utf-8"))
     assert tuned["bnb_lds"]["small_instance_max_customers"] >= 4
     start = time.perf_counter()
     row = run_one_cvrp_algorithm(tiny, "examples/tiny_cvrp.vrp", "bnb_lds",

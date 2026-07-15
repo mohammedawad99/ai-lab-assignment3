@@ -43,9 +43,17 @@ COPIES = [
     ("raw/gp_gep_comparison_runs.csv", "gp_gep_comparison_runs.csv"),
     ("rushhour_hard/manual_heuristics_summary.csv", "rushhour_hard_manual_summary.csv"),
     ("rushhour_hard/gp_gep_hard_summary.csv", "rushhour_hard_gp_gep_summary.csv"),
+    ("rushhour_hard/gp_gep_hard_runs.csv", "rushhour_hard_gp_gep_runs.csv"),
     ("rushhour_hard/hard_benchmark_manifest.json", "rushhour_hard_manifest.json"),
     ("final_execution_manifest.json", "final_execution_manifest.json"),
     ("final_v3_summary.txt", "final_v3_summary.txt"),
+]
+
+# explicit ILS snapshots (Stage 13-A); produced by scripts/run_ils_evidence.py
+ILS_COPIES = [
+    ("ils/raw/cvrp_ils_runs.csv", "cvrp_ils_runs.csv"),
+    ("ils/summary/cvrp_ils_summary.csv", "cvrp_ils_summary.csv"),
+    ("ils/cvrp_ils_manifest.json", "cvrp_ils_manifest.json"),
 ]
 
 
@@ -130,6 +138,15 @@ def main():
             print(f"copied rushhour_direct/{src} -> report/evidence/{dst}")
         else:
             print(f"note: {direct_dir / src} missing, direct snapshot skipped")
+
+    # explicit ILS snapshots (run scripts/run_ils_evidence.py to produce them)
+    for src, dst in ILS_COPIES:
+        if (RESULTS / src).exists():
+            shutil.copyfile(RESULTS / src, EVIDENCE / dst)
+            print(f"copied {src} -> report/evidence/{dst}")
+        else:
+            print(f"note: {RESULTS / src} missing, ILS snapshot skipped "
+                  "(run scripts/run_ils_evidence.py)")
 
 
 if __name__ == "__main__":

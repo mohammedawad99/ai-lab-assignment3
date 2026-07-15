@@ -25,6 +25,9 @@ from src.experiments.official_benchmarks import load_bks_table
 # the six required algorithms, shared by both parts
 REQUIRED_SIX = ["sa", "tabu", "aco", "ga_island", "alns", "bnb_lds"]
 
+# CVRP-only extras: the explicit Iterated Local Search driver (Stage 13-A)
+CVRP_EXTRAS = ["ils"]
+
 
 def fail(message):
     print(message, file=sys.stderr)
@@ -81,9 +84,15 @@ def main():
     parser.add_argument("--output-dir", help="directory for part=both")
     args = parser.parse_args()
 
+    known = REQUIRED_SIX + CVRP_EXTRAS
     for name in args.algorithms:
-        if name not in REQUIRED_SIX:
-            fail(f"unknown algorithm '{name}', known: {', '.join(REQUIRED_SIX)}")
+        if name not in known:
+            fail(f"unknown algorithm '{name}', known: {', '.join(known)}")
+    if args.part in ("ackley", "both"):
+        cvrp_only = [a for a in args.algorithms if a in CVRP_EXTRAS]
+        if cvrp_only:
+            fail(f"algorithm(s) {', '.join(cvrp_only)} are CVRP-only "
+                 "(no Ackley adaptation); use --part cvrp")
     if args.part in ("cvrp", "both") and not args.instances:
         fail("--instances is required for part=cvrp and part=both")
     if args.part in ("cvrp", "ackley") and not args.output:

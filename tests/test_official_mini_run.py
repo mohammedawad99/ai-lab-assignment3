@@ -62,7 +62,7 @@ def test_mini_run_raises_without_allow_missing(empty_data_dir, tmp_path):
 
 
 def test_config_json_loads():
-    config = json.loads(CONFIG_PATH.read_text())
+    config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     assert config["default_instance"] == "P-n16-k8"
     assert "readiness run" in config["note"]
     assert len(config["algorithms"]) == 7  # baseline + the six required

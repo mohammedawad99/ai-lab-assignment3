@@ -23,6 +23,10 @@ EVIDENCE_FILES = [
     "final_execution_manifest.json",
     "final_v3_summary.txt",
     "cvrp_seed_robustness_summary.csv",
+    # explicit ILS evidence (Stage 13-A)
+    "cvrp_ils_runs.csv",
+    "cvrp_ils_summary.csv",
+    "cvrp_ils_manifest.json",
 ]
 
 VISUAL_FIGURES = [
@@ -46,6 +50,7 @@ REQUIRED_REFERENCES = [
     "rushhour_manual_heuristic_ladder.png",
     "rushhour_gp_gep_vs_manual.png",
     "rushhour_gp_gep_seed_variance.png",
+    "cvrp_ils_comparison.png",
 ]
 
 
@@ -70,13 +75,13 @@ def test_visual_figures_exist():
 
 
 def test_report_references_new_figures():
-    text = REPORT_MD.read_text()
+    text = REPORT_MD.read_text(encoding="utf-8")
     for name in REQUIRED_REFERENCES:
         assert f"figures/{name}" in text, name
 
 
 def test_report_still_honest():
-    text = REPORT_MD.read_text()
+    text = REPORT_MD.read_text(encoding="utf-8")
     assert "[fill after final run]" not in text
     assert "X-n101-k25" in text
     assert "25.45" in text
@@ -100,7 +105,7 @@ def test_no_full_results_or_official_data_committed():
 def test_stage11_report_claims_match_evidence():
     # the Stage 11 project-best gaps in the report must equal the evidence
     import csv
-    text = REPORT_MD.read_text()
+    text = REPORT_MD.read_text(encoding="utf-8")
     with open(EVIDENCE / "cvrp_algorithm_mean_gaps.csv", newline="") as f:
         rows = list(csv.DictReader(f))
     instances = [k for k in rows[0]
@@ -117,7 +122,7 @@ def test_stage11_report_claims_match_evidence():
 def test_bnb_report_claims_match_evidence():
     # the report's B&B/LDS numbers must be backed by the committed evidence
     import csv
-    text = REPORT_MD.read_text()
+    text = REPORT_MD.read_text(encoding="utf-8")
     with open(EVIDENCE / "cvrp_algorithm_mean_gaps.csv", newline="") as f:
         by_algo = {r["algorithm"]: r for r in csv.DictReader(f)}
     bnb, base = by_algo["cvrp_bnb_lds"], by_algo["baseline"]

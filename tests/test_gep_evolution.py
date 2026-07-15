@@ -99,10 +99,10 @@ def test_cli_writes_outputs(tmp_path):
     proc = run_cli("--output", str(csv_path), "--best-output", str(best_path))
     assert proc.returncode == 0
     assert csv_path.exists()
-    lines = csv_path.read_text().splitlines()
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
     assert lines[0].startswith("generation,best_fitness")
     assert len(lines) == 3  # header + 2 generations
     assert best_path.exists()
-    content = best_path.read_text()
+    content = best_path.read_text(encoding="utf-8")
     assert "expression:" in content
     assert "genome:" in content

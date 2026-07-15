@@ -50,7 +50,7 @@ def test_combine_csv_files(tmp_path):
     assert info["input_count"] == 2
     assert info["missing_count"] == 0
     assert info["row_count"] == 3
-    lines = (tmp_path / "combined.csv").read_text().splitlines()
+    lines = (tmp_path / "combined.csv").read_text(encoding="utf-8").splitlines()
     assert lines == ["a,b", "1,2", "3,4", "5,6"]  # exactly one header
 
 
@@ -66,7 +66,7 @@ def test_combine_csv_files_reports_missing(tmp_path):
 def test_write_execution_manifest(tmp_path):
     path = write_execution_manifest(tmp_path / "sub" / "manifest.json", {"x": 1})
     assert path.exists()
-    assert json.loads(path.read_text()) == {"x": 1}
+    assert json.loads(path.read_text(encoding="utf-8")) == {"x": 1}
 
 
 # ---------- aggregation with missing files ----------

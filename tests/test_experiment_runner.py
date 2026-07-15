@@ -21,14 +21,14 @@ def test_write_and_append_dict_rows(tmp_path):
     fieldnames = ["a", "b"]
     write_dict_rows(path, [{"a": 1, "b": 2}], fieldnames)
     append_dict_rows(path, [{"a": 3, "b": 4}], fieldnames)
-    lines = path.read_text().splitlines()
+    lines = path.read_text(encoding="utf-8").splitlines()
     assert lines == ["a,b", "1,2", "3,4"]  # single header only
 
 
 def test_write_dict_rows_empty_still_has_header(tmp_path):
     path = tmp_path / "empty.csv"
     write_dict_rows(path, [], ["x", "y"])
-    assert path.read_text().splitlines() == ["x,y"]
+    assert path.read_text(encoding="utf-8").splitlines() == ["x,y"]
 
 
 # ---------- cvrp runner ----------

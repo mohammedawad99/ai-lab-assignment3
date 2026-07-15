@@ -1,0 +1,51 @@
+{
+  "generated_utc": "2026-07-15T20:46:25+00:00",
+  "command": "python scripts/run_ils_evidence.py",
+  "plan": "configs/final_experiment_plan.json",
+  "algorithm": "cvrp_ils",
+  "instances": [
+    "P-n16-k8",
+    "E-n22-k4",
+    "A-n32-k5",
+    "A-n80-k10",
+    "X-n101-k25",
+    "M-n200-k17"
+  ],
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "per_instance": {
+    "P-n16-k8": {
+      "budget": 300,
+      "timeout_sec": 30
+    },
+    "E-n22-k4": {
+      "budget": 300,
+      "timeout_sec": 30
+    },
+    "A-n32-k5": {
+      "budget": 500,
+      "timeout_sec": 60
+    },
+    "A-n80-k10": {
+      "budget": 800,
+      "timeout_sec": 120
+    },
+    "X-n101-k25": {
+      "budget": 1000,
+      "timeout_sec": 180
+    },
+    "M-n200-k17": {
+      "budget": 1200,
+      "timeout_sec": 300
+    }
+  },
+  "ils_settings": {
+    "note": "library defaults: kick ~10% of customers, worse_tolerance 0.02, restart_after 20, candidate_list_k 10 on instances with >= 60 customers"
+  },
+  "rows": 18,
+  "feasible_rows": 18,
+  "total_elapsed_sec": 217.6
+}

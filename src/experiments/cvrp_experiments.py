@@ -2,6 +2,8 @@
 
 The six required algorithms are sa, tabu, aco, ga_island, alns and bnb_lds.
 "baseline" is only the multi-stage heuristic reference, not one of the six.
+"ils" is the explicit Iterated Local Search driver (Stage 13-A), reported
+alongside the six with the same budgets and timeouts.
 """
 
 from pathlib import Path
@@ -15,10 +17,12 @@ from src.cvrp.solvers.aco import run_cvrp_aco
 from src.cvrp.solvers.alns import run_cvrp_alns
 from src.cvrp.solvers.bnb_lds import run_cvrp_bnb_lds
 from src.cvrp.solvers.ga_island import run_cvrp_ga_island
+from src.cvrp.solvers.ils import run_cvrp_ils
 from src.cvrp.solvers.simulated_annealing import run_cvrp_simulated_annealing
 from src.cvrp.solvers.tabu_search import run_cvrp_tabu_search
 
-CVRP_ALGORITHMS = ["baseline", "sa", "tabu", "aco", "ga_island", "alns", "bnb_lds"]
+CVRP_ALGORITHMS = ["baseline", "sa", "tabu", "aco", "ga_island", "alns",
+                   "bnb_lds", "ils"]
 
 CVRP_FIELDNAMES = [
     "part", "instance", "instance_path", "algorithm", "seed",
@@ -158,6 +162,18 @@ def run_one_cvrp_algorithm(instance, instance_path, algorithm, seed, budget,
                           reaction_rate=alns_cfg.get("reaction_rate", 0.2))
         result = run_cvrp_alns(instance, iterations=budget, seed=seed,
                                timeout_sec=timeout_sec, **kwargs)
+        budget_name = "iterations"
+    elif algorithm == "ils":
+        ils_cfg = tuned.get("ils", {})
+        result = run_cvrp_ils(
+            instance, iterations=budget, seed=seed, timeout_sec=timeout_sec,
+            kick_strength=ils_cfg.get("kick_strength"),
+            worse_tolerance=ils_cfg.get("worse_tolerance", 0.02),
+            restart_after=int(ils_cfg.get("restart_after", 20)),
+            local_search_passes=int(ils_cfg.get("local_search_passes", 2)),
+            candidate_list_k=ils_cfg.get("candidate_list_k", 10),
+            candidate_list_min_customers=int(
+                ils_cfg.get("candidate_list_min_customers", 60)))
         budget_name = "iterations"
     elif algorithm == "bnb_lds":
         bnb_cfg = tuned.get("bnb_lds", {})

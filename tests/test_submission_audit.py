@@ -58,7 +58,12 @@ def test_pdf_exists_and_is_not_tiny():
 def test_no_forbidden_root_files():
     assert not (REPO_ROOT / "report.md").exists()
     assert not (REPO_ROOT / "report.pdf").exists()
-    assert not (REPO_ROOT / "docs").exists()
+    # docs/ must never be tracked (an untracked local copy of the course
+    # PDFs is allowed; it is not part of a git-based submission package)
+    import subprocess
+    tracked = subprocess.run(["git", "ls-files", "docs"], capture_output=True,
+                             text=True, cwd=REPO_ROOT).stdout.strip()
+    assert tracked == ""
     assert not (REPO_ROOT / "AI_USAGE.md").exists()
     zips = [p for p in REPO_ROOT.rglob("*.zip")
             if ".venv" not in p.parts and ".git" not in p.parts]

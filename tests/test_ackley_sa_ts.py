@@ -77,5 +77,5 @@ def test_cli_both_writes_csv(tmp_path):
     assert "algorithm: ackley_sa" in proc.stdout
     assert "algorithm: ackley_tabu" in proc.stdout
     assert csv_path.exists()
-    lines = csv_path.read_text().splitlines()
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
     assert len(lines) == 3  # header + one row per algorithm

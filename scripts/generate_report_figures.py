@@ -416,6 +416,47 @@ def main():
     else:
         print("note: direct-planner evidence missing, bonus figures skipped")
 
+    # ---- explicit ILS comparison (Stage 13-A, from committed evidence) ----
+    ils_summary_path = evidence / "cvrp_ils_summary.csv"
+    if ils_summary_path.exists():
+        ils_rows = {r["instance"]: r for r in read_rows(ils_summary_path)}
+        eff_rows = read_rows(evidence / "cvrp_all_policy_effective_summary.csv")
+        base_gaps = [float(next(r["best_gap_percent"] for r in eff_rows
+                                if r["instance"] == i
+                                and r["algorithm"] == "baseline"))
+                     for i in INSTANCES]
+        six_gaps = [min(float(r["best_gap_percent"]) for r in eff_rows
+                        if r["instance"] == i and r["algorithm"] != "baseline")
+                    for i in INSTANCES]
+        ils_gaps = [float(ils_rows[i]["best_gap_percent"]) for i in INSTANCES]
+
+        fig, ax = plt.subplots(figsize=(9.0, 4.6))
+        width = 0.27
+        xs = range(len(INSTANCES))
+        groups = [("multi-stage baseline", base_gaps, [x - width for x in xs]),
+                  ("best of the six algorithms", six_gaps, list(xs)),
+                  ("ILS (explicit driver)", ils_gaps, [x + width for x in xs])]
+        for label, values, positions in groups:
+            bars = ax.bar(positions, values, width, label=label)
+            for bar in bars:
+                ax.annotate(f"{bar.get_height():.2f}",
+                            (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                            ha="center", va="bottom", fontsize=6.5)
+        ax.set_xticks(list(xs))
+        ax.set_xticklabels(INSTANCES, rotation=30, ha="right")
+        ax.set_ylabel("best gap vs BKS (%)")
+        ax.set_yscale("log")
+        ax.set_title("ILS vs baseline and the six comparison algorithms "
+                     "(best-of-seeds gap, log scale)")
+        ax.legend(fontsize=8)
+        fig.tight_layout()
+        path = FIGURES / "cvrp_ils_comparison.png"
+        fig.savefig(path, dpi=150)
+        plt.close(fig)
+        created.append(path)
+    else:
+        print("note: ILS evidence missing, ILS comparison figure skipped")
+
     # ---- code snippet figures (real source lines) ----
     render_text_image(extract_snippet("src/cvrp/local_search.py",
                                       "def build_routes_subset_sum_packing", 28),

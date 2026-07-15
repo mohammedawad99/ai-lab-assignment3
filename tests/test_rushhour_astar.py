@@ -23,7 +23,7 @@ UNSOLVABLE_BOARD = (
 
 
 def load_tiny_state():
-    return parse_board_string(TINY_PUZZLE.read_text())
+    return parse_board_string(TINY_PUZZLE.read_text(encoding="utf-8"))
 
 
 def test_astar_solves_tiny_puzzle():

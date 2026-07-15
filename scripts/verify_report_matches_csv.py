@@ -50,7 +50,7 @@ def main():
         if not ok:
             failures.append(name)
 
-    text = REPORT.read_text()
+    text = REPORT.read_text(encoding="utf-8")
     summary = read_rows(EVIDENCE / "cvrp_all_summary.csv")
     effective = read_rows(EVIDENCE / "cvrp_all_policy_effective_summary.csv")
     mean_gaps = read_rows(EVIDENCE / "cvrp_algorithm_mean_gaps.csv")
@@ -95,6 +95,26 @@ def main():
     if "42–49" in text or "42-49" in text:
         check("8-seed mentions are labeled as robustness",
               "robustness" in text and "not the source of any" in text)
+
+    # 5. explicit ILS (Stage 13-A): the report's ILS numbers must equal the
+    # committed ILS evidence, and every ILS run must be feasible
+    ils_path = EVIDENCE / "cvrp_ils_summary.csv"
+    check("ILS evidence snapshot exists", ils_path.exists())
+    if ils_path.exists():
+        ils = {r["instance"]: r for r in read_rows(ils_path)}
+        check("ILS evidence covers all six instances",
+              set(ils) == set(INSTANCES), ",".join(sorted(ils)))
+        check("all ILS evidence runs are feasible",
+              all(r["runs"] == r["feasible_runs"] for r in ils.values()))
+        for inst in INSTANCES:
+            gap = float(ils[inst]["best_gap_percent"])
+            check(f"report states ILS best gap for {inst}",
+                  number_in_text(text, gap), f"{gap:.4f}")
+        ils_mean = sum(float(r["best_gap_percent"])
+                       for r in ils.values()) / len(ils)
+        check("report states ILS mean best gap",
+              number_in_text(text, ils_mean, decimals=(3, 2)),
+              f"{ils_mean:.3f}")
 
     print(f"\nreport-vs-evidence: {'PASS' if not failures else 'FAIL'} "
           f"({len(failures)} failed check(s))")

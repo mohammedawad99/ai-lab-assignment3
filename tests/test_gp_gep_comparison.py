@@ -75,11 +75,11 @@ def test_write_outputs(tmp_path):
     write_run_summaries_csv(summary, csv_path)
     write_comparison_summary_txt(summary, txt_path)
 
-    lines = csv_path.read_text().splitlines()
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
     assert lines[0] == ",".join(CSV_HEADER)
     assert len(lines) == 3  # header + 1 GP run + 1 GEP run
 
-    text = txt_path.read_text()
+    text = txt_path.read_text(encoding="utf-8")
     assert "gp runs: 1" in text
     assert "best gep genome:" in text
     assert "depend on the small puzzle set" in text
@@ -113,6 +113,6 @@ def test_cli_writes_outputs(tmp_path):
     proc = run_cli("--output", str(csv_path), "--summary-output", str(txt_path))
     assert proc.returncode == 0
     assert csv_path.exists()
-    assert csv_path.read_text().splitlines()[0] == ",".join(CSV_HEADER)
+    assert csv_path.read_text(encoding="utf-8").splitlines()[0] == ",".join(CSV_HEADER)
     assert txt_path.exists()
-    assert "gep genome diversity" in txt_path.read_text()
+    assert "gep genome diversity" in txt_path.read_text(encoding="utf-8")

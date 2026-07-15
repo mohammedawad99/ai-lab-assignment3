@@ -11,7 +11,7 @@ BKS_VALUES = ["450", "375", "784", "1763", "27591", "1275"]
 
 
 def report_text():
-    return REPORT_PATH.read_text()
+    return REPORT_PATH.read_text(encoding="utf-8")
 
 
 def test_report_exists_with_headings():

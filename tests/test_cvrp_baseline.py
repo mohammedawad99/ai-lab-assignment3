@@ -149,6 +149,6 @@ def test_cli_output_file(tmp_path):
     proc = run_cli("--output", str(output))
     assert proc.returncode == 0
     assert output.exists()
-    content = output.read_text().splitlines()
+    content = output.read_text(encoding="utf-8").splitlines()
     assert content[0] == "80.64"
     assert len(content) >= 3  # cost line plus two used routes

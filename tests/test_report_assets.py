@@ -52,7 +52,7 @@ def test_save_line_chart(tmp_path):
 
 def test_save_text_note(tmp_path):
     path = save_text_note("hello", tmp_path / "note.txt")
-    assert path.read_text() == "hello\n"
+    assert path.read_text(encoding="utf-8") == "hello\n"
 
 
 # ---------- markdown helpers ----------
@@ -70,7 +70,7 @@ def test_markdown_table_rows():
 def test_write_markdown_table(tmp_path):
     path = write_markdown_table(tmp_path / "table.md", [{"a": 1}], ["a"], title="T")
     assert path.exists()
-    assert path.read_text().startswith("# T")
+    assert path.read_text(encoding="utf-8").startswith("# T")
 
 
 def test_load_rows_if_exists_missing(tmp_path):

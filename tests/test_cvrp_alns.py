@@ -139,7 +139,7 @@ def test_cli_output_file(tmp_path):
     proc = run_cli("--iterations", "20", "--seed", "42", "--output", str(output))
     assert proc.returncode == 0
     assert output.exists()
-    assert output.read_text().splitlines()[0] == "80.64"
+    assert output.read_text(encoding="utf-8").splitlines()[0] == "80.64"
 
 
 # ---------- stage 10-A: enhanced operators ----------

@@ -103,7 +103,7 @@ def test_cli_csv_output(tmp_path):
     csv_path = tmp_path / "check.csv"
     proc = run_cli("--data-dir", str(empty_dir), "--csv-output", str(csv_path))
     assert proc.returncode == 0
-    lines = csv_path.read_text().splitlines()
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
     assert lines[0] == "instance,expected_path,exists,bks_cost"
     assert len(lines) == 7  # header + 6 instances
 

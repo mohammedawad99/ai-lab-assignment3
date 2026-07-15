@@ -4,8 +4,18 @@ Checks that the tracked project files, the filled report, and (optionally)
 the final result files and the PDF are all in the expected state. Prints one
 PASS/FAIL line per check and exits 0 only if everything required passed.
 
+Two modes:
+- development audit (default): run in the full working repository;
+  --check-results additionally verifies the generated files under
+  results/final_experiments/.
+- --submission-package: validates a clean clone / extracted source package,
+  where results/ is intentionally absent. The canonical evidence under
+  report/evidence/ and the PDF are required instead; --check-results is
+  ignored in this mode.
+
 Usage:
     python scripts/audit_submission.py [--strict] [--check-results] [--check-pdf]
+    python scripts/audit_submission.py --submission-package [--check-pdf]
 """
 
 import argparse
@@ -39,6 +49,10 @@ REQUIRED_FILES = [
     "report/evidence/direct_gp_gep_runs.csv",
     "report/evidence/direct_manual_baselines.csv",
     "report/evidence/direct_planner_manifest.json",
+    # explicit ILS evidence (Stage 13-A)
+    "report/evidence/cvrp_ils_runs.csv",
+    "report/evidence/cvrp_ils_summary.csv",
+    "report/evidence/cvrp_ils_manifest.json",
 ]
 
 # Stage 11-C project-best gaps that the report must state (they must also
@@ -78,7 +92,18 @@ def main():
                         help="treat optional notes as failures too")
     parser.add_argument("--check-results", action="store_true")
     parser.add_argument("--check-pdf", action="store_true")
+    parser.add_argument("--submission-package", action="store_true",
+                        help="validate a clean source package: report/evidence "
+                             "and the PDF are required, results/ is not")
     args = parser.parse_args()
+
+    if args.submission_package:
+        # a clean package has no generated results/ tree by design
+        if args.check_results:
+            print("NOTE  --check-results ignored in --submission-package mode "
+                  "(results/ is intentionally not part of the package)")
+        args.check_results = False
+        args.check_pdf = True
 
     failures = []
 
@@ -97,13 +122,21 @@ def main():
     # report content
     report_path = REPO_ROOT / "report" / "assignment3_report.md"
     if report_path.exists():
-        text = report_path.read_text()
+        text = report_path.read_text(encoding="utf-8")
         check("report has no unresolved placeholders",
               "[fill after final run]" not in text)
         lowered = text.lower()
         check("report has no overclaim phrases",
               all(p not in lowered for p in OVERCLAIM_PHRASES))
         check("report has an AI tools section", "AI tools" in text)
+        # Stage 13-A: explicit ILS coverage and formal report elements
+        check("report has an explicit ILS section",
+              "Iterated Local Search (ILS)" in text)
+        check("report uses exploration/exploitation vocabulary",
+              "exploration" in lowered and "exploitation" in lowered)
+        check("report has a references section", "## 15. References" in text)
+        check("report has a cover identification block",
+              "Submitted by" in text)
         check("report covers the tuned rerun", "tuned" in text)
         check("report covers the hard Rush Hour benchmark",
               "hard Rush Hour" in text and "blocker_depth" in text)
@@ -116,7 +149,7 @@ def main():
         direct_manifest = REPO_ROOT / "report" / "evidence" / "direct_planner_manifest.json"
         if direct_manifest.exists():
             import json as _json
-            direct = _json.loads(direct_manifest.read_text())
+            direct = _json.loads(direct_manifest.read_text(encoding="utf-8"))
             check("direct bonus manifest is not smoke",
                   direct.get("smoke") is False)
             check("report covers the direct no-A* bonus",
@@ -205,16 +238,30 @@ def main():
     # executable-runner compliance (Stage 12-A)
     readme = REPO_ROOT / "README.md"
     if readme.exists():
-        readme_text = readme.read_text()
+        readme_text = readme.read_text(encoding="utf-8")
         check("README documents the executable run commands",
               "Executable / run commands" in readme_text
               and "a3.py" in readme_text)
     import subprocess as sp
-    tracked = sp.run(["git", "ls-files"], capture_output=True, text=True,
-                     cwd=REPO_ROOT).stdout.splitlines()
-    check("no dist/build binaries tracked",
-          not any(p.startswith(("dist/", "build/")) or p.endswith(".exe")
-                  or p.endswith(".spec") for p in tracked))
+    try:
+        git_list = sp.run(["git", "ls-files"], capture_output=True, text=True,
+                          cwd=REPO_ROOT)
+        tracked = git_list.stdout.splitlines() if git_list.returncode == 0 else []
+    except OSError:
+        tracked = []  # no git available (e.g. extracted package)
+    if args.submission_package:
+        binary_hits = [str(p.relative_to(REPO_ROOT)) for pattern in
+                       ("dist", "build") for p in [REPO_ROOT / pattern]
+                       if p.exists()]
+        binary_hits += [str(p.relative_to(REPO_ROOT))
+                        for p in REPO_ROOT.rglob("*.exe")
+                        if ".venv" not in p.parts and ".git" not in p.parts]
+        check("no dist/build binaries in package", not binary_hits,
+              ", ".join(binary_hits))
+    else:
+        check("no dist/build binaries tracked",
+              not any(p.startswith(("dist/", "build/")) or p.endswith(".exe")
+                      or p.endswith(".spec") for p in tracked))
 
     # report-vs-evidence consistency gate (Stage 11-F)
     import subprocess
@@ -225,9 +272,31 @@ def main():
           gate.returncode == 0,
           gate.stdout.strip().splitlines()[-1] if gate.stdout else "no output")
 
-    # forbidden root-level files/dirs
+    # forbidden files/dirs. In the development repository the rule is that
+    # they are never tracked by git (untracked local copies, e.g. a docs/
+    # folder with the course PDFs kept only on this machine, are a note, not
+    # a failure — a git-based package will not contain them). In a clean
+    # extracted package there is no git metadata, so the files must simply
+    # not exist.
     for name in FORBIDDEN:
-        check(f"forbidden absent: {name}", not (REPO_ROOT / name).exists())
+        if args.submission_package:
+            if (REPO_ROOT / ".git").exists() and (REPO_ROOT / name).exists() \
+                    and not [p for p in tracked
+                             if p == name or p.startswith(name + "/")]:
+                # package mode run inside the dev repo: an untracked local
+                # copy will not be in a git-based package
+                print(f"NOTE  {name} exists locally but is untracked "
+                      "(a git-based package will not contain it)")
+                continue
+            check(f"forbidden absent: {name}", not (REPO_ROOT / name).exists())
+            continue
+        tracked_hits = [p for p in tracked
+                        if p == name or p.startswith(name + "/")]
+        check(f"forbidden not tracked: {name}", not tracked_hits,
+              ", ".join(tracked_hits))
+        if not tracked_hits and (REPO_ROOT / name).exists():
+            print(f"NOTE  {name} exists locally but is untracked "
+                  "(will not be part of a git-based package)")
     zips = [p for p in REPO_ROOT.rglob("*.zip")
             if ".venv" not in p.parts and ".git" not in p.parts]
     check("no ZIP files", not zips, ", ".join(str(p) for p in zips))

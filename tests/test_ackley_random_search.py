@@ -47,7 +47,7 @@ def test_write_ackley_results(tmp_path):
     result = run_random_search(iterations=20, seed=5)
     csv_path = tmp_path / "sub" / "ackley.csv"
     write_ackley_results([result], csv_path)
-    lines = csv_path.read_text().splitlines()
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
     assert lines[0] == ",".join(CSV_HEADER)
     assert len(lines) == 2
     assert lines[1].startswith("random_search,10,5,20,")
@@ -76,4 +76,4 @@ def test_cli_writes_csv(tmp_path):
     proc = run_cli("--iterations", "50", "--seed", "42", "--output", str(csv_path))
     assert proc.returncode == 0
     assert csv_path.exists()
-    assert csv_path.read_text().splitlines()[0] == ",".join(CSV_HEADER)
+    assert csv_path.read_text(encoding="utf-8").splitlines()[0] == ",".join(CSV_HEADER)
