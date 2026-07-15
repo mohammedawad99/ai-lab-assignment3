@@ -27,8 +27,11 @@ def main():
                         help="also print '0 0' lines for unused vehicles")
     args = parser.parse_args()
 
-    instance = parse_cvrplib(args.instance)
-    solution = parse_solution_file(args.solution)
+    try:
+        instance = parse_cvrplib(args.instance)
+        solution = parse_solution_file(args.solution)
+    except (OSError, ValueError) as e:
+        sys.exit(f"input error: {e}")
     matrix = build_distance_matrix(instance)
     cost = solution_cost(solution, matrix)
     result = validate_solution(instance, solution)

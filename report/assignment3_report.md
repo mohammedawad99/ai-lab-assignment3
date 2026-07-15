@@ -455,11 +455,14 @@ Complexity: everything here is heuristic, not exact. One 2-opt pass over a
 route of length L evaluates O(L²) candidate reversals; since the Stage 11
 performance pass each candidate is priced in O(1) from its four changed
 edges (delta = d[a][c] + d[b][d] − d[a][b] − d[c][d]) instead of
-recomputing the whole route, which made the pass 7–136× faster
-(route length 10–200 in the microbenchmark) while producing byte-identical
-routes. A NumPy distance matrix was also benchmarked and rejected: scalar
-indexing into an ndarray inside these Python loops measured about 4×
-slower than plain lists. The relocate pass scans all customer/position
+recomputing the whole route. In our local microbenchmark (committed as
+`report/evidence/delta_eval_benchmark.txt`, reproducible with
+`scripts/benchmark_delta_2opt.py`) one best-improvement scan is 9–126×
+faster over route lengths 10–200, while both scans provably pick the same
+move (asserted by the benchmark and by the equivalence tests). A NumPy
+distance matrix was also benchmarked and rejected in the same
+microbenchmark: scalar indexing into an ndarray inside these Python loops
+measured 4.1–4.6× slower than plain lists. The relocate pass scans all customer/position
 pairs, roughly O(n²) per pass, and can optionally be restricted to
 k-nearest candidate lists. The repair adds packing work (the subset-sum
 table is O(n · capacity) per vehicle) but guarantees the route count fits
@@ -864,6 +867,25 @@ i.e. a small fraction of its wall clock is spent off-CPU. The
 deterministic methods (baseline, B&B/LDS) and near-deterministic Tabu
 have (near-)zero std; the stochastic improvers pay seed variance for
 their better means.
+
+Per instance, the mean ± standard deviation of the solution cost over the
+three seeds (taken directly from `report/evidence/cvrp_all_summary.csv`;
+both ALNS variants are shown — the reported "alns" policy uses the
+enhanced variant everywhere except M-n200-k17):
+
+| instance | baseline | sa | tabu | aco | ga_island | alns | alns_enh | bnb_lds |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P-n16-k8 | 461.9±0.0 | 451.5±0.4 | 451.9±0.0 | 451.9±0.0 | 451.5±0.4 | 455.6±3.2 | 451.3±0.0 | 451.3±0.0 |
+| E-n22-k4 | 387.5±0.0 | 382.2±6.2 | 384.1±0.0 | 381.7±0.0 | 375.3±0.0 | 375.3±0.0 | 379.4±4.1 | 375.3±0.0 |
+| A-n32-k5 | 828.7±0.0 | 801.0±24.0 | 828.7±0.0 | 821.5±3.8 | 828.7±0.0 | 814.8±24.0 | 814.8±24.0 | 828.7±0.0 |
+| A-n80-k10 | 1850.3±0.0 | 1850.3±0.0 | 1848.8±2.5 | 1850.3±0.0 | 1845.2±0.0 | 1835.7±16.2 | 1828.0±15.6 | 1850.3±0.0 |
+| X-n101-k25 | 35062.5±0.0 | 34960.0±121.3 | 34991.3±0.0 | 34762.9±259.5 | 34163.5±212.6 | 35062.5±0.0 | 34947.3±186.9 | 35062.5±0.0 |
+| M-n200-k17 | 1383.2±0.0 | 1383.2±0.0 | 1383.2±0.0 | 1383.2±0.0 | 1377.1±0.0 | 1356.9±10.0 | 1369.1±7.2 | 1383.2±0.0 |
+
+A zero std means every seed converged to the same cost: the deterministic
+methods always, and the one-move walkers on the instances where they
+stay on (or return to) the baseline. The ILS per-instance mean ± std is
+in its own table in Section 6.7.
 
 ## 10. Analysis and Discussion
 

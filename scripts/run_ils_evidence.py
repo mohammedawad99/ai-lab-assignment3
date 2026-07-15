@@ -91,7 +91,10 @@ def main():
     suite_start = time.perf_counter()
     for name in instances:
         instance_path = data_dir / f"{name}.vrp"
-        instance = parse_cvrplib(instance_path)
+        try:
+            instance = parse_cvrplib(instance_path)
+        except (OSError, ValueError) as e:
+            sys.exit(f"input error: {instance_path}: {e}")
         budget = per_instance[name]["budget"]
         timeout_sec = per_instance[name]["timeout_sec"]
         for seed in seeds:

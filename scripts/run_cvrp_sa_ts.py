@@ -31,7 +31,10 @@ def main():
                         help="also print '0 0' lines for unused vehicles")
     args = parser.parse_args()
 
-    instance = parse_cvrplib(args.instance)
+    try:
+        instance = parse_cvrplib(args.instance)
+    except (OSError, ValueError) as e:
+        sys.exit(f"input error: {e}")
     if args.algorithm == "sa":
         result = run_cvrp_simulated_annealing(
             instance, iterations=args.iterations, seed=args.seed, timeout_sec=args.timeout

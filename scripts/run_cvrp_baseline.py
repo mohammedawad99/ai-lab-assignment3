@@ -26,7 +26,10 @@ def main():
                         help="also print '0 0' lines for unused vehicles")
     args = parser.parse_args()
 
-    instance = parse_cvrplib(args.instance)
+    try:
+        instance = parse_cvrplib(args.instance)
+    except (OSError, ValueError) as e:
+        sys.exit(f"input error: {e}")
     result = build_multistage_baseline(instance)
     matrix = build_distance_matrix(instance)
 

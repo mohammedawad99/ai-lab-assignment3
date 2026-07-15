@@ -1,0 +1,20 @@
+Delta-evaluation microbenchmark (scripts/benchmark_delta_2opt.py)
+seed 42, best of 3 repeats per timing, one best-improvement 2-opt scan per measurement
+
+part 1: full route-cost recomputation vs O(1) delta scan
+route_len  full_scan_ms  delta_scan_ms  speedup
+       10         0.055          0.006     9.1x
+       25         0.591          0.030    19.6x
+       50         3.997          0.122    32.9x
+      100        30.461          0.464    65.6x
+      200       230.762          1.829   126.2x
+
+speedup range over route lengths 10-200: 9x to 126x
+
+part 2: delta scan, plain-list matrix vs NumPy ndarray (scalar indexing in Python loops)
+route_len  list_ms  ndarray_ms  ndarray_slowdown
+      100    0.334       1.529              4.6x
+      200    1.711       7.046              4.1x
+
+ndarray slowdown range: 4.1x to 4.6x
+

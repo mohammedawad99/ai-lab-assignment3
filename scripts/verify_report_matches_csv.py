@@ -20,6 +20,7 @@ Usage:
 """
 
 import csv
+import re
 import sys
 from pathlib import Path
 
@@ -115,6 +116,38 @@ def main():
         check("report states ILS mean best gap",
               number_in_text(text, ils_mean, decimals=(3, 2)),
               f"{ils_mean:.3f}")
+
+    # 6. per-instance mean +/- std table (Section 9) must match the summary
+    # CSV cell by cell, in the exact "mean±std" one-decimal format it uses
+    missing_cells = []
+    for row in summary:
+        cell = (f"{float(row['mean_cost']):.1f}"
+                f"±{float(row['std_cost']):.1f}")
+        if cell not in text:
+            missing_cells.append(f"{row['instance']}/{row['algorithm']}")
+    check("report per-instance mean±std cells match cvrp_all_summary",
+          not missing_cells, ", ".join(missing_cells[:4]))
+
+    # 7. the Section 5 delta-evaluation performance claims must match the
+    # committed microbenchmark evidence (both measured ranges, verbatim)
+    bench_path = EVIDENCE / "delta_eval_benchmark.txt"
+    check("delta-eval benchmark evidence exists", bench_path.exists())
+    if bench_path.exists():
+        bench = bench_path.read_text(encoding="utf-8")
+        speed = re.search(
+            r"speedup range over route lengths [\d-]+: (\d+)x to (\d+)x", bench)
+        slow = re.search(
+            r"ndarray slowdown range: ([\d.]+)x to ([\d.]+)x", bench)
+        check("benchmark evidence has both measured ranges",
+              bool(speed and slow))
+        if speed:
+            claim = f"{speed.group(1)}–{speed.group(2)}×"
+            check("report states the measured delta-eval speedup range",
+                  claim in text, claim)
+        if slow:
+            claim = f"{slow.group(1)}–{slow.group(2)}×"
+            check("report states the measured ndarray slowdown range",
+                  claim in text, claim)
 
     print(f"\nreport-vs-evidence: {'PASS' if not failures else 'FAIL'} "
           f"({len(failures)} failed check(s))")

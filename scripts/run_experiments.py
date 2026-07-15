@@ -17,6 +17,7 @@ from pathlib import Path
 # make "src" importable when the script is run directly
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from src.cvrp.io_cvrplib import parse_cvrplib
 from src.experiments.ackley_experiments import ACKLEY_FIELDNAMES, run_ackley_experiments
 from src.experiments.csv_utils import write_dict_rows
 from src.experiments.cvrp_experiments import CVRP_FIELDNAMES, run_cvrp_experiments
@@ -99,6 +100,15 @@ def main():
         fail("--output is required for part=cvrp and part=ackley")
     if args.part == "both" and not args.output_dir:
         fail("--output-dir is required for part=both")
+
+    # fail fast with a clear message on bad instance files (course rule:
+    # report input errors, never crash with a raw traceback)
+    if args.part in ("cvrp", "both"):
+        for path in args.instances:
+            try:
+                parse_cvrplib(path)
+            except (OSError, ValueError) as exc:
+                fail(f"input error: {path}: {exc}")
 
     cvrp_algorithms = (["baseline"] if args.include_baseline else []) + args.algorithms
     ackley_algorithms = (["random_search"] if args.include_random_search else []) + args.algorithms

@@ -60,7 +60,7 @@ data and are not committed unless the course explicitly asks for them.
 
 ## Requirements
 
-- Python 3.11+
+- Python 3.12.3 (the version used for all reported runs)
 - Install dependencies: `pip install -r requirements.txt`
 
 ## Project layout
