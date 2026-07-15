@@ -43,7 +43,7 @@ KEY_TEXT = ["Assignment 3 Report", "Ackley", "CVRP", "Rush Hour", "GP", "GEP",
             "blocker_depth", "without A*", "11/14", "13/14", "120736",
             "Iterated Local Search", "exploration", "exploitation",
             "CPU time", "1.5219", "4.9072", "5.463", "References",
-            "Submitted by", "Page 2"]
+            "Submitted by", "207731647", "318827417", "Page 2"]
 
 
 def strip_markup(text):

@@ -4,8 +4,8 @@
 **Lecturer:** Shay Bushinsky
 **Assignment:** Experiment 3 — Multi-Step Heuristics, Meta-Heuristics and
 Swarm Intelligence (CVRP), with generative evolutionary AI (Rush Hour GP/GEP)
-**Submitted by:** Mohamed Awad — ID: (fill in before submission)
-**Submission:** individual (pair submission not used)
+**Submitted by:** Mohamed Awad — ID 207731647, and Salah Hamam — ID 318827417
+**Submission:** pair submission
 **Date:** July 2026
 **Repository:** https://github.com/mohammedawad99/ai-lab-assignment3
 
@@ -1018,8 +1018,8 @@ detailed below.
   comes from running the committed scripts on this machine, and the
   consistency gate (`scripts/verify_report_matches_csv.py`) plus the test
   suite re-check the report against the evidence CSVs on every run.
-- **Responsibility and understanding:** the submitter reviewed all
-  generated code, takes full responsibility for it, and can explain every
+- **Responsibility and understanding:** the submitters reviewed all
+  generated code, take full responsibility for it, and can explain every
   line, as the course requires. Code that could not be explained was
   rewritten until it could be.
 - **External code:** no third-party or copied code is included beyond the
