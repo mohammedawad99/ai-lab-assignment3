@@ -28,3 +28,8 @@ data/official_cvrp/*.vrp
 dist/
 build/
 *.spec
+*.exe
+/a3
+
+# Assignment PDFs (course material, must never enter the source archive)
+docs/

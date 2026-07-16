@@ -95,14 +95,20 @@ recorded as a failed puzzle instead of crashing the run.
 Every CVRP solver prints the assignment's output format: the heuristic
 value (total cost) on the first line, then one line per used vehicle with
 the visited city indices in order, starting and ending at the depot index
-0 (`--include-unused-vehicles` also prints `0 0` lines for idle vehicles).
-On the assignment's 5-city example (depot at the origin, four unit-demand-3
-cities, capacity 10) the multi-stage baseline reproduces the expected
-sub-optimal reference solution and cost:
+0. On the assignment's 5-city example (depot at the origin, four
+unit-demand-3 cities, capacity 10, four vehicles) the multi-stage baseline
+reproduces the expected sub-optimal reference solution and cost, and with
+`--include-unused-vehicles` the printout matches the assignment's output
+example line for line, including the `0 0` lines for the two idle
+vehicles. This is the real output of
+`python scripts/run_cvrp_baseline.py --instance examples/tiny_cvrp.vrp
+--include-unused-vehicles`:
 
     80.64
     0 1 2 3 0
     0 4 0
+    0 0
+    0 0
 
 This sanity check is automated: `python a3.py sanity` runs it, and the I/O
 tests assert the exact first line. Elapsed and CPU times are printed with
@@ -570,7 +576,14 @@ iterated local search; this section is the explicit implementation of that
 requirement (`src/cvrp/solvers/ils.py`, Stage 13-A). ILS is **not** a
 rebrand of SA, Tabu or ACO — those walk one random neighbor at a time,
 while ILS jumps between complete **local optima**, and its module imports
-none of the other solvers (a dedicated test enforces this). One ILS
+none of the other solvers (a dedicated test enforces this). TS, ACO and
+SA are the meta-heuristics this abstract framing generalizes — Sections
+6.1–6.3 evaluate them as siblings over the same shared neighborhood and
+greedy start — while this section makes the outer perturb → descend →
+accept loop itself explicit. Its embedded local search is deliberately the
+deterministic descent stack rather than a second metaheuristic nested
+inside, so the measured gains are attributable to the iterated framework
+and not to a hidden inner SA/Tabu run. One ILS
 iteration has the classic four ingredients:
 
 1. **Initial solution:** the multi-stage baseline (Section 5), improved to
@@ -660,8 +673,11 @@ Three of the assignment's explicit notes deserve a direct answer:
   assignment names are controlled as follows. SA's schedule was the main
   tuning win (T₀ = 500, cooling 0.9995 — Section 6.1). Tabu's neighborhood
   is defined per step by the shared relocate/swap/2-opt moves, with a
-  FIFO tenure of n = 30 and aspiration on a new global best; the tenure
-  was kept static after the tuning pass. ACO runs with static α = 1,
+  FIFO tenure of n = 30 and aspiration on a new global best; the Stage-10
+  tuning sweep covered the SA, GA and ALNS parameters, while the tenure
+  was left at this fixed value (a standard rule-of-thumb setting whose
+  behaviour the eight-seed robustness study of Section 4.3 then checked
+  across seeds). ACO runs with static α = 1,
   β = 2 (Section 6.3); dynamic adjustment of α/β during the run was not
   implemented and is listed as future work. The project's realized
   *dynamic* parameter mechanism is ALNS: its operator weights adapt
@@ -678,7 +694,12 @@ Three of the assignment's explicit notes deserve a direct answer:
   migration. All reported runs are deliberately single-threaded
   single-process for fairness and exact reproducibility (one timeout, one
   seed, one core), so no parallel speedup is claimed; the design leaves
-  the parallel axes available at zero algorithmic cost.
+  the parallel axes available at zero algorithmic cost. The note's ~10×
+  figure is realistic on these axes: the final suite is 144 independent
+  runs (6 instances × 8 algorithm configurations × 3 seeds), so on a
+  10-core machine near-linear scaling — about 10× — comes from simply
+  running those runs concurrently, with the ACO-ant and island axes still
+  untouched.
 
 ## 7. Ackley Adaptations
 
@@ -1074,6 +1095,13 @@ detailed below.
   workflow: planning the stage breakdown, writing and refactoring code,
   writing tests, debugging failures, reviewing consistency between the
   report and the evidence files, and polishing this report's text.
+- **Per-part use:** in Part A (CVRP + Ackley) the assistant helped draft
+  the solver implementations, the tuning/experiment scripts and this
+  report's analysis text; in Part B (GP/GEP for Rush Hour) it helped
+  draft the tree/genome machinery, the A*-fitness evaluator, the direct
+  no-A* planner and the corresponding report sections. In both parts the
+  submitters directed the design, ran every experiment, and validated the
+  outputs.
 - **What the AI did not do:** no experimental number in this report was
   produced or edited by hand or by the assistant directly — every value
   comes from running the committed scripts on this machine, and the
@@ -1085,12 +1113,15 @@ detailed below.
   rewritten until it could be.
 - **External code:** no third-party or copied code is included beyond the
   declared open-source libraries in `requirements.txt` (numpy, matplotlib,
-  pandas, pytest); no unreviewed generated code was submitted.
+  pytest); no unreviewed generated code was submitted.
+- **Attestation:** this declaration is made by both submitters, Mohamed
+  Awad and Salah Hamam, and covers the entire submission (source, scripts,
+  report).
 
 ## 13. Reproducibility
 
 - Python 3.12.3, dependencies via `pip install -r requirements.txt`
-  (numpy, matplotlib, pandas, pytest).
+  (numpy, matplotlib, pytest).
 - Place the six official CVRPLIB files under `data/official_cvrp/` and
   verify with `python scripts/check_official_cvrp_data.py --strict`.
 - Smoke check: `python scripts/run_smoke_suite.py --output-dir results/smoke_suite`
@@ -1122,8 +1153,10 @@ detailed below.
   `a3.py` unified entry point with the `run_a3.sh` / `run_a3.bat`
   wrappers, plus a PyInstaller build script
   (`scripts/build_exe_windows.bat`, with `requirements-build.txt` for the
-  pinned build tool) that produces a standalone `a3.exe`; per coding
-  rule 7 no binary file is committed or included in the source archive.
+  pinned build tool) that produces a one-file `a3.exe` launcher (run from
+  the repository root, or from `dist\` inside it, with Python installed);
+  per coding rule 7 no binary file is committed or included in the source
+  archive.
 - Audit (development repo): `python scripts/audit_submission.py --check-results --check-pdf`
 - Audit (clean source package, no results/ needed):
   `python scripts/audit_submission.py --submission-package` or `python a3.py audit-package`

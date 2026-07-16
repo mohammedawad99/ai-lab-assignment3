@@ -68,8 +68,9 @@ data and are not committed unless the course explicitly asks for them.
 ## Building the Windows executable (submission item b)
 
 Submission item (b) — "run programs (EXE)" — is delivered by `a3.py` with
-the `run_a3.sh` / `run_a3.bat` wrappers, plus a standalone `a3.exe` built
-with PyInstaller. Per coding rule 7 no binary is committed or included in
+the `run_a3.sh` / `run_a3.bat` wrappers, plus a one-file `a3.exe` built
+with PyInstaller (a thin launcher: it needs Python and the repository
+tree next to it, see below). Per coding rule 7 no binary is committed or included in
 the source archive; the grader (or submitter) builds it with the exact
 commands below.
 
